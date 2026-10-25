@@ -273,6 +273,18 @@ def api_craft():
     return jsonify({"success": success, "message": message})
 
 @app.route('/api/sell', methods=['POST'])
+@app.route('/api/leaderboard', methods=['POST'])
+def api_leaderboard():
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    # Достаем топ-10 игроков по балансу
+    cursor.execute("SELECT user_id, balance FROM users ORDER BY balance DESC LIMIT 10")
+    rows = cursor.fetchall()
+    conn.close()
+    
+    # Возвращаем список (пока без имен, только ID и баланс)
+    top_players = [{"id": row[0], "balance": row[1]} for row in rows]
+    return jsonify({"leaderboard": top_players})
 def api_sell():
     data = request.json
     user_id = data.get('user_id')
