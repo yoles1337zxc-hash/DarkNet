@@ -153,4 +153,133 @@
         function sellItem(itemId, itemName) {
             Telegram.WebApp.showConfirm(`Вы уверены, что хотите продать "${itemName}"?`, (confirmed) => {
                 if (confirmed) {
-                    fetch('/api/sell', { method: 'POST', headers: { 'Content-Type': 'application
+                    fetch('/api/sell', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId, item_id: itemId }) })
+                    .then(res => res.json()).then(data => {
+                        if (data.success) {
+                            Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                            Telegram.WebApp.showAlert(data.message);
+                            loadInventory(); loadData(); 
+                        } else { Telegram.WebApp.showAlert(data.message); }
+                    });
+                }
+            });
+        }
+
+        function loadCraftable() {
+            fetch('/api/get_craftable', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+            .then(res => res.json()).then(data => {
+                const list = document.getElementById('craftList');
+                list.innerHTML = '';
+                if (data.craftable.length === 0) { list.innerHTML = '<div style="text-align:center; color:#888;">У вас нет 3-х одинаковых деталей для крафта.</div>'; return; }
+                data.craftable.forEach(item => {
+                    let chance = 0; let nextRarity = "";
+                    if(item.rarity === "Обычный") { chance = 60; nextRarity = "Редкий"; }
+                    else if(item.rarity === "Редкий") { chance = 40; nextRarity = "Эпический"; }
+                    else if(item.rarity === "Эпический") { chance = 20; nextRarity = "Легендарный"; }
+                    else if(item.rarity === "Легендарный") { chance = 10; nextRarity = "Мифический"; }
+                    const box = document.createElement('div');
+                    box.className = 'craft-box';
+                    box.innerHTML = `<div class="craft-title">Улучшить ${item.rarity} ${item.type} -> ${nextRarity} (Шанс ${chance}%)</div><button class="btn btn-craft" onclick="doCraft('${item.type}', '${item.rarity}')">КРАФТИТЬ (Есть: ${item.count})</button>`;
+                    list.appendChild(box);
+                });
+            });
+        }
+
+        function doCraft(itemType, rarity) {
+            fetch('/api/craft', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId, item_type: itemType, rarity: rarity }) })
+            .then(res => res.json()).then(data => {
+                if(data.success) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    Telegram.WebApp.showAlert(data.message);
+                    loadData(); 
+                } else {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+                    Telegram.WebApp.showAlert(data.message);
+                }
+                loadCraftable(); 
+            });
+        }
+
+        function loadLeaderboard() {
+            fetch('/api/leaderboard', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+            .then(res => res.json()).then(data => {
+                const list = document.getElementById('leaderboardList');
+                list.innerHTML = '';
+                if (data.leaderboard.length === 0) { list.innerHTML = '<div style="text-align:center; color:#888;">Пока нет игроков.</div>'; return; }
+                data.leaderboard.forEach((player, index) => {
+                    const isMe = player.id === userId;
+                    const div = document.createElement('div');
+                    div.className = 'item-card'; 
+                    if (isMe) div.style.border = "2px solid #00ff41";
+                    div.style.marginBottom = "10px"; div.style.display = "flex"; div.style.justifyContent = "space-between"; div.style.alignItems = "center"; div.style.padding = "15px";
+                    let placeColor = "#888";
+                    if (index === 0) placeColor = "#ffd700"; if (index === 1) placeColor = "#c0c0c0"; if (index === 2) placeColor = "#cd7f32";
+                    div.innerHTML = `<div style="font-size: 18px; font-weight: bold; color: ${placeColor};">#${index + 1}</div><div style="font-size: 14px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px;">${player.name}</div><div style="font-size: 16px; font-weight: bold; color: #00ff41;">${player.balance} ₽</div>`;
+                    list.appendChild(div);
+                });
+            });
+        }
+
+        document.getElementById('claimBtn').addEventListener('click', () => {
+            fetch('/api/claim', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+            .then(res => res.json()).then(data => {
+                if (data.earned > 0) { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); Telegram.WebApp.showAlert(`Вы забрали ${data.earned} ₽!`); } 
+                else { Telegram.WebApp.showAlert("Сеть еще не накопила данные. Подожди!"); }
+                loadData();
+            });
+        });
+
+        document.getElementById('upgradeBtn').addEventListener('click', () => {
+            fetch('/api/upgrade', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+            .then(res => res.json()).then(data => {
+                if (data.success) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    Telegram.WebApp.showAlert(`Сервер улучшен! Базовый доход повышен.`);
+                    loadData();
+                } else { Telegram.WebApp.showAlert(data.message); }
+            });
+        });
+
+        document.getElementById('luckBtn').addEventListener('click', () => {
+            fetch('/api/buy_luck', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+            .then(res => res.json()).then(data => {
+                if (data.success) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    Telegram.WebApp.showAlert(`Удача улучшена до уровня ${data.new_luck}! Теперь редкие детали падают чаще.`);
+                    loadData();
+                } else { Telegram.WebApp.showAlert(data.message); }
+            });
+        });
+
+        document.getElementById('caseBtn').addEventListener('click', () => {
+            fetch('/api/case', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+            .then(res => res.json()).then(data => {
+                if (data.success) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    Telegram.WebApp.showPopup({ title: "📦 Деталь получена!", message: `Выпало: ${data.item.name}\nТип: ${data.item.type}\nРедкость: ${data.item.rarity}\nДоход: +${data.item.income} ₽/ч`, buttons: [{type: "ok"}] });
+                    loadData(); 
+                } else { Telegram.WebApp.showAlert(data.message); }
+            });
+        });
+
+        document.getElementById('premiumBtn').addEventListener('click', () => {
+            fetch('/api/buy_premium_case', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+            .then(res => res.json()).then(data => {
+                if (data.success) { Telegram.WebApp.showAlert("Счет выставлен! Проверьте чат с ботом."); Telegram.WebApp.close(); } 
+                else { Telegram.WebApp.showAlert("Ошибка."); }
+            });
+        });
+
+        document.getElementById('dailyBtn').addEventListener('click', () => {
+            fetch('/api/daily', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+            .then(res => res.json()).then(data => {
+                if (data.success) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    Telegram.WebApp.showPopup({ title: `🔥 Стрик: ${data.streak} дней!`, message: `${data.message}\n${data.bonus_case ? '🎁 Вам также выдан бонусный кейс!' : ''}`, buttons: [{type: "ok"}] });
+                    loadData();
+                } else { Telegram.WebApp.showAlert(data.message); }
+            });
+        });
+    </script>
+</body>
+</html>
