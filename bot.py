@@ -20,13 +20,22 @@ def init_db():
         last_claim INTEGER DEFAULT 0, 
         base_income INTEGER DEFAULT 10,
         last_daily INTEGER DEFAULT 0,
-        daily_streak INTEGER DEFAULT 0
+        daily_streak INTEGER DEFAULT 0,
+        username TEXT DEFAULT 'Хакер'
     )''')
+    
+    # Добавляем колонку username, если база старая
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN username TEXT DEFAULT 'Хакер'")
+    except sqlite3.OperationalError:
+        pass
+        
     try:
         cursor.execute("ALTER TABLE users ADD COLUMN last_daily INTEGER DEFAULT 0")
         cursor.execute("ALTER TABLE users ADD COLUMN daily_streak INTEGER DEFAULT 0")
     except sqlite3.OperationalError:
         pass
+        
     cursor.execute('''CREATE TABLE IF NOT EXISTS inventory (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
@@ -37,7 +46,6 @@ def init_db():
     )''')
     conn.commit()
     conn.close()
-
 def get_user(user_id):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
@@ -164,8 +172,18 @@ def health():
 def api_get_data():
     data = request.json
     user_id = data.get('user_id')
+    username = data.get('username', 'Хакер') # Получаем имя с фронтенда
+    
     if not user_id: return jsonify({"error": "No user_id"}), 400
     init_db()
+    
+    # Сохраняем имя в базу (если изменилось)
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET username = ? WHERE user_id = ?", (username, user_id))
+    conn.commit()
+    conn.close()
+    
     balance, last_claim, base_income, last_daily, streak = get_user(user_id)
     total_income = base_income + get_total_inventory_income(user_id)
     upgrade_cost = base_income * 10
@@ -277,13 +295,12 @@ def api_craft():
 def api_leaderboard():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    # Достаем топ-10 игроков по балансу
-    cursor.execute("SELECT user_id, balance FROM users ORDER BY balance DESC LIMIT 10")
+    # Достаем топ-10 игроков по балансу вместе с их именами
+    cursor.execute("SELECT user_id, username, balance FROM users ORDER BY balance DESC LIMIT 10")
     rows = cursor.fetchall()
     conn.close()
     
-    # Возвращаем список (пока без имен, только ID и баланс)
-    top_players = [{"id": row[0], "balance": row[1]} for row in rows]
+    top_players = [{"id": row[0], "name": row[1], "balance": row[2]} for row in rows]
     return jsonify({"leaderboard": top_players})
 def api_sell():
     data = request.json
