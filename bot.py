@@ -64,18 +64,83 @@ def add_item_to_inventory(user_id, item_name, item_type, rarity, income):
 def get_total_inventory_income(user_id):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute("SELECT SUM(income) FROM inventory WHERE user_id = ?", (user_id,))
-    row = cursor.fetchone()
+    cursor.execute("SELECT item_type, income FROM inventory WHERE user_id = ?", (user_id,))
+    rows = cursor.fetchall()
     conn.close()
-    return row[0] if row[0] else 0
+    if not rows: return 0
+    base_inv_income = sum([r[1] for r in rows])
+    type_counts = {}
+    for r in rows:
+        type_counts[r[0]] = type_counts.get(r[0], 0) + 1
+    bonus_income = 0
+    for t, count in type_counts.items():
+        if count >= 3:
+            type_income = sum([r[1] for r in rows if r[0] == t])
+            bonus_income += type_income * 0.2
+    return int(base_inv_income + bonus_income)
 
 def get_inventory(user_id):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute("SELECT item_name, item_type, rarity, income FROM inventory WHERE user_id = ?", (user_id,))
+    # Теперь возвращаем и ID предмета
+    cursor.execute("SELECT id, item_name, item_type, rarity, income FROM inventory WHERE user_id = ?", (user_id,))
     rows = cursor.fetchall()
     conn.close()
-    return [{"name": row[0], "type": row[1], "rarity": row[2], "income": row[3]} for row in rows]
+    return [{"id": row[0], "name": row[1], "type": row[2], "rarity": row[3], "income": row[4]} for row in rows]
+
+# Функция для крафта (Улучшения редкости)
+def upgrade_rarity(user_id, item_type, current_rarity):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    
+    # Ищем 3 предмета этого типа и редкости
+    cursor.execute("SELECT id FROM inventory WHERE user_id = ? AND item_type = ? AND rarity = ? LIMIT 3", (user_id, item_type, current_rarity))
+    items = cursor.fetchall()
+    
+    if len(items) < 3:
+        conn.close()
+        return False, "Нужно 3 одинаковые детали!"
+        
+    # Удаляем эти 3 предмета
+    ids_to_delete = [item[0] for item in items]
+    cursor.execute(f"DELETE FROM inventory WHERE id IN ({','.join(['?']*len(ids_to_delete))})", ids_to_delete)
+    
+    # Определяем следующий уровень и шанс
+    next_rarity = ""
+    chance = 0
+    if current_rarity == "Обычный":
+        next_rarity, chance = "Редкий", 60
+        new_income = 25
+    elif current_rarity == "Редкий":
+        next_rarity, chance = "Эпический", 40
+        new_income = 100
+    elif current_rarity == "Эпический":
+        next_rarity, chance = "Легендарный", 20
+        new_income = 500
+    elif current_rarity == "Легендарный":
+        next_rarity, chance = "Мифический", 10
+        new_income = 2000
+    else:
+        conn.close()
+        return False, "Максимальная редкость!"
+        
+    # Крутим рулетку
+    roll = random.randint(1, 100)
+    success = roll <= chance
+    
+    if success:
+        # Если успех - создаем новую деталь
+        new_name = f"Улучшенный {item_type}"
+        cursor.execute("INSERT INTO inventory (user_id, item_name, item_type, rarity, income) VALUES (?, ?, ?, ?, ?)", 
+                       (user_id, new_name, item_type, next_rarity, new_income))
+        conn.commit()
+        conn.close()
+        return True, f"УСПЕХ! Вы получили {next_rarity} {item_type}!"
+    else:
+        # Если неудача - предметы сгорают
+        conn.commit()
+        conn.close()
+        return False, "НЕУДАЧА! Детали сгорели. Попробуйте еще раз."
 
 # --- ВЕБ-СЕРВЕР ---
 app = Flask(__name__)
@@ -91,8 +156,7 @@ def api_get_data():
     if not user_id: return jsonify({"error": "No user_id"}), 400
     init_db()
     balance, last_claim, base_income = get_user(user_id)
-    inv_income = get_total_inventory_income(user_id)
-    total_income = base_income + inv_income
+    total_income = base_income + get_total_inventory_income(user_id)
     upgrade_cost = base_income * 10
     return jsonify({"balance": balance, "income": total_income, "base_income": base_income, "upgrade_cost": upgrade_cost})
 
@@ -107,17 +171,14 @@ def api_upgrade():
     new_balance = balance - upgrade_cost
     new_base_income = base_income + 5
     update_user(user_id, balance=new_balance, base_income=new_base_income)
-    inv_income = get_total_inventory_income(user_id)
-    total_income = new_base_income + inv_income
-    return jsonify({"success": True, "balance": new_balance, "total_income": total_income, "new_base_income": new_base_income, "next_upgrade_cost": new_base_income * 10})
+    return jsonify({"success": True, "balance": new_balance, "total_income": new_base_income + get_total_inventory_income(user_id), "next_upgrade_cost": new_base_income * 10})
 
 @app.route('/api/claim', methods=['POST'])
 def api_claim():
     data = request.json
     user_id = data.get('user_id')
     balance, last_claim, base_income = get_user(user_id)
-    inv_income = get_total_inventory_income(user_id)
-    total_income = base_income + inv_income
+    total_income = base_income + get_total_inventory_income(user_id)
     now = int(time.time())
     seconds_passed = now - last_claim
     hours_passed = min(seconds_passed / 3600.0, 4.0)
@@ -133,35 +194,41 @@ def api_case():
     data = request.json
     user_id = data.get('user_id')
     balance, last_claim, base_income = get_user(user_id)
-    if balance < 50: 
-        return jsonify({"success": False, "message": "Недостаточно средств!"})
+    if balance < 50: return jsonify({"success": False, "message": "Недостаточно средств!"})
     new_balance = balance - 50
     update_user(user_id, balance=new_balance)
     
-    # Новые комплектующие для сервера
     items = [
         {"name": "Кулер 120мм", "type": "Охлаждение", "rarity": "Обычный", "income": 5},
-        {"name": "Вентилятор RGB", "type": "Охлаждение", "rarity": "Обычный", "income": 10},
-        {"name": "Блок питания 500W", "type": "Питание", "rarity": "Редкий", "income": 25},
-        {"name": "Материнская плата B450", "type": "Плата", "rarity": "Редкий", "income": 35},
-        {"name": "Процессор Intel i5", "type": "Процессор", "rarity": "Эпический", "income": 100},
+        {"name": "Блок питания", "type": "Питание", "rarity": "Обычный", "income": 10},
+        {"name": "Процессор i5", "type": "Процессор", "rarity": "Обычный", "income": 15},
+        {"name": "Материнская плата", "type": "Плата", "rarity": "Обычный", "income": 12},
+        {"name": "Вентилятор RGB", "type": "Охлаждение", "rarity": "Редкий", "income": 25},
+        {"name": "Видеокарта GTX 1660", "type": "Видеокарта", "rarity": "Редкий", "income": 35},
+        {"name": "Процессор i7", "type": "Процессор", "rarity": "Эпический", "income": 100},
         {"name": "Видеокарта RTX 3060", "type": "Видеокарта", "rarity": "Эпический", "income": 150},
-        {"name": "Процессор Intel i9 Extreme", "type": "Процессор", "rarity": "Легендарный", "income": 500},
+        {"name": "Процессор i9 Extreme", "type": "Процессор", "rarity": "Легендарный", "income": 500},
         {"name": "Видеокарта RTX 4090", "type": "Видеокарта", "rarity": "Легендарный", "income": 800}
     ]
     dropped_item = random.choice(items)
     add_item_to_inventory(user_id, dropped_item["name"], dropped_item["type"], dropped_item["rarity"], dropped_item["income"])
-    
-    inv_income = get_total_inventory_income(user_id)
-    total_income = base_income + inv_income
-    return jsonify({"success": True, "item": dropped_item, "balance": new_balance, "total_income": total_income})
+    return jsonify({"success": True, "item": dropped_item, "balance": new_balance, "total_income": base_income + get_total_inventory_income(user_id)})
 
 @app.route('/api/get_inventory', methods=['POST'])
 def api_get_inventory():
     data = request.json
     user_id = data.get('user_id')
-    inv = get_inventory(user_id)
-    return jsonify({"inventory": inv})
+    return jsonify({"inventory": get_inventory(user_id)})
+
+@app.route('/api/craft', methods=['POST'])
+def api_craft():
+    data = request.json
+    user_id = data.get('user_id')
+    item_type = data.get('item_type')
+    current_rarity = data.get('rarity')
+    
+    success, message = upgrade_rarity(user_id, item_type, current_rarity)
+    return jsonify({"success": success, "message": message})
 
 @app.route('/api/buy_premium_case', methods=['POST'])
 def api_buy_premium_case():
@@ -196,7 +263,6 @@ def got_payment(message):
     balance, last_claim, base_income = get_user(user_id)
     new_balance = balance + 5000
     update_user(user_id, balance=new_balance)
-    # За донат даем топовую видеокарту
     add_item_to_inventory(user_id, "Видеокарта RTX 4090", "Видеокарта", "Легендарный", 800)
     bot.send_message(user_id, f"💎 Оплата прошла! Вы получили 5000 ₽ и Легендарную видеокарту!")
 
