@@ -8,106 +8,139 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Courier New', Courier, monospace; }
         body { background-color: #0a0a0a; color: #00ff41; display: flex; flex-direction: column; align-items: center; padding: 20px; min-height: 100vh; }
-        .balance-card { background: #111; border: 1px solid #00ff41; border-radius: 10px; padding: 20px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 0 15px rgba(0, 255, 65, 0.2); margin-bottom: 20px; margin-top: 20px; }
+        
+        .tab-content { display: none; width: 100%; max-width: 400px; flex-direction: column; align-items: center; }
+        .tab-content.active { display: flex; }
+
+        .balance-card { background: #111; border: 1px solid #00ff41; border-radius: 10px; padding: 20px; width: 100%; text-align: center; box-shadow: 0 0 15px rgba(0, 255, 65, 0.2); margin-bottom: 20px; margin-top: 20px; }
         .balance-amount { font-size: 48px; font-weight: bold; text-shadow: 0 0 10px #00ff41; }
         .income-text { color: #b026ff; font-size: 14px; margin-top: 5px; text-shadow: 0 0 5px #b026ff; }
-        .btn { width: 100%; max-width: 400px; padding: 18px; background: transparent; border: 2px solid #00ff41; color: #00ff41; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 0 10px #00ff41; text-transform: uppercase; margin-bottom: 15px; transition: 0.2s; }
+        
+        .btn { width: 100%; padding: 18px; background: transparent; border: 2px solid #00ff41; color: #00ff41; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 0 10px #00ff41; text-transform: uppercase; margin-bottom: 15px; transition: 0.2s; }
         .btn:active { background: #00ff41; color: #0a0a0a; }
         .btn-case { border-color: #b026ff; color: #b026ff; box-shadow: 0 0 10px #b026ff; }
         .btn-case:active { background: #b026ff; color: #0a0a0a; }
         .btn-premium { border-color: #ffd700; color: #ffd700; box-shadow: 0 0 10px #ffd700; }
         .btn-premium:active { background: #ffd700; color: #0a0a0a; }
+
+        /* Стили для инвентаря */
+        .inventory-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-top: 10px; }
+        .item-card { background: #111; border: 1px solid #333; padding: 10px; border-radius: 8px; text-align: center; }
+        .item-name { font-size: 12px; color: #fff; margin-bottom: 5px; }
+        .item-rarity { font-size: 10px; color: #888; }
+        .rarity-Обычный { border-color: #888; box-shadow: 0 0 5px #888; }
+        .rarity-Редкий { border-color: #00bfff; box-shadow: 0 0 5px #00bfff; }
+        .rarity-Эпический { border-color: #b026ff; box-shadow: 0 0 5px #b026ff; }
+        .rarity-Легендарный { border-color: #ffd700; box-shadow: 0 0 10px #ffd700; }
+
+        /* Навигация (нижнее меню) */
+        .nav-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: #111; display: flex; justify-content: space-around; padding: 15px 0; border-top: 1px solid #333; }
+        .nav-btn { background: none; border: none; color: #888; font-size: 24px; cursor: pointer; }
+        .nav-btn.active { color: #00ff41; text-shadow: 0 0 10px #00ff41; }
     </style>
 </head>
 <body>
-    <div class="balance-card">
-        <div>БАЛАНС</div>
-        <div class="balance-amount" id="balance">Загрузка...</div>
-        <div class="income-text" id="income">Доход: ...</div>
+    <!-- Вкладка 1: Главная -->
+    <div id="tab-main" class="tab-content active">
+        <div class="balance-card">
+            <div>БАЛАНС</div>
+            <div class="balance-amount" id="balance">Загрузка...</div>
+            <div class="income-text" id="income">Доход: ...</div>
+        </div>
+        <button class="btn" id="claimBtn">Взломать и забрать</button>
+        <button class="btn btn-case" id="caseBtn">Открыть кейс (50 ₽)</button>
+        <button class="btn btn-premium" id="premiumBtn">Премиум-взлом (15 ⭐️)</button>
     </div>
 
-    <button class="btn" id="claimBtn">Взломать и забрать</button>
-    <button class="btn btn-case" id="caseBtn">Открыть кейс (50 ₽)</button>
-    <button class="btn btn-premium" id="premiumBtn">Премиум-взлом (15 ⭐️)</button>
+    <!-- Вкладка 2: Арсенал (Инвентарь) -->
+    <div id="tab-inventory" class="tab-content">
+        <h2 style="margin-top: 20px; margin-bottom: 10px;">МОЙ АРСЕНАЛ</h2>
+        <div class="inventory-grid" id="inventoryGrid">
+            <!-- Сюда будут загружаться предметы -->
+        </div>
+    </div>
+
+    <!-- Нижнее меню -->
+    <div class="nav-bar">
+        <button class="nav-btn active" onclick="switchTab('main')">💻</button>
+        <button class="nav-btn" onclick="switchTab('inventory')">🎒</button>
+    </div>
 
     <script>
         Telegram.WebApp.ready();
         Telegram.WebApp.expand(); 
-        
         const userId = Telegram.WebApp.initDataUnsafe.user.id;
+
+        // Переключение вкладок
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('tab-' + tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            if(tabName === 'inventory') loadInventory();
+        }
 
         function updateUI(balance, income) {
             document.getElementById('balance').innerText = balance + " ₽";
             document.getElementById('income').innerText = "Доход: " + income + " ₽/ч";
         }
 
-        // Загрузка данных
-        fetch('/api/get_data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId })
-        })
-        .then(res => res.json())
-        .then(data => updateUI(data.balance, data.income))
-        .catch(err => console.log(err));
+        // Загрузка баланса
+        function loadData() {
+            fetch('/api/get_data', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+            .then(res => res.json()).then(data => updateUI(data.balance, data.income));
+        }
+        loadData();
 
-        // Кнопка Забрать
-        document.getElementById('claimBtn').addEventListener('click', () => {
-            fetch('/api/claim', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.earned > 0) {
-                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    Telegram.WebApp.showAlert(`Вы забрали ${data.earned} ₽!`);
-                } else {
-                    Telegram.WebApp.showAlert("Сеть еще не накопила данные. Подожди!");
+        // Загрузка инвентаря
+        function loadInventory() {
+            fetch('/api/get_inventory', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+            .then(res => res.json()).then(data => {
+                const grid = document.getElementById('inventoryGrid');
+                grid.innerHTML = ''; // Очищаем
+                
+                if (data.inventory.length === 0) {
+                    grid.innerHTML = '<div style="grid-column: span 2; text-align:center; color:#888;">Арсенал пуст. Открывай кейсы!</div>';
+                    return;
                 }
+
+                data.inventory.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = `item-card rarity-${item.rarity}`;
+                    div.innerHTML = `<div class="item-name">${item.name}</div><div class="item-rarity">${item.rarity}</div>`;
+                    grid.appendChild(div);
+                });
+            });
+        }
+
+        // Кнопки
+        document.getElementById('claimBtn').addEventListener('click', () => {
+            fetch('/api/claim', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+            .then(res => res.json()).then(data => {
+                if (data.earned > 0) { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); Telegram.WebApp.showAlert(`Вы забрали ${data.earned} ₽!`); } 
+                else { Telegram.WebApp.showAlert("Сеть еще не накопила данные. Подожди!"); }
                 updateUI(data.balance, 10);
             });
         });
 
-        // Кнопка Обычного Кейса
         document.getElementById('caseBtn').addEventListener('click', () => {
-            fetch('/api/case', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId })
-            })
-            .then(res => res.json())
-            .then(data => {
+            fetch('/api/case', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+            .then(res => res.json()).then(data => {
                 if (data.success) {
                     Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    Telegram.WebApp.showPopup({
-                        title: "📦 Архив вскрыт!",
-                        message: `Выпало: ${data.item.name}\nРедкость: ${data.item.rarity}`,
-                        buttons: [{type: "ok"}]
-                    });
+                    Telegram.WebApp.showPopup({ title: "📦 Архив вскрыт!", message: `Выпало: ${data.item.name}\nРедкость: ${data.item.rarity}`, buttons: [{type: "ok"}] });
                     updateUI(data.balance, 10);
-                } else {
-                    Telegram.WebApp.showAlert(data.message);
-                }
+                } else { Telegram.WebApp.showAlert(data.message); }
             });
         });
 
-        // Кнопка Премиум-кейса (Звезды)
         document.getElementById('premiumBtn').addEventListener('click', () => {
-            fetch('/api/buy_premium_case', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    Telegram.WebApp.showAlert("Счет выставлен! Проверьте чат с ботом для оплаты.");
-                    Telegram.WebApp.close(); 
-                } else {
-                    Telegram.WebApp.showAlert("Ошибка при создании счета.");
-                }
+            fetch('/api/buy_premium_case', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+            .then(res => res.json()).then(data => {
+                if (data.success) { Telegram.WebApp.showAlert("Счет выставлен! Проверьте чат с ботом."); Telegram.WebApp.close(); } 
+                else { Telegram.WebApp.showAlert("Ошибка."); }
             });
         });
     </script>
