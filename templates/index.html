@@ -85,11 +85,18 @@
         <div id="craftList" style="width: 100%;"></div>
     </div>
 
+    <!-- Вкладка 4: Таблица Лидеров -->
+    <div id="tab-leaderboard" class="tab-content">
+        <h2 style="margin-top: 20px; margin-bottom: 20px; color: #ffd700; text-shadow: 0 0 10px #ffd700;">ТОП ХАКЕРОВ</h2>
+        <div id="leaderboardList" style="width: 100%; padding-bottom: 80px;"></div>
+    </div>
+
     <!-- Нижнее меню -->
     <div class="nav-bar">
         <button class="nav-btn active" onclick="switchTab('main', this)">💻</button>
         <button class="nav-btn" onclick="switchTab('inventory', this)">⚙️</button>
         <button class="nav-btn" onclick="switchTab('craft', this)">🔧</button>
+        <button class="nav-btn" onclick="switchTab('leaderboard', this)">🏆</button>
     </div>
 
     <script>
@@ -113,6 +120,7 @@
             btnElement.classList.add('active');
             if(tabName === 'inventory') loadInventory();
             if(tabName === 'craft') loadCraftable();
+            if(tabName === 'leaderboard') loadLeaderboard();
         }
 
         function updateUI(balance, income, upgradeCost) {
@@ -140,9 +148,7 @@
                     const div = document.createElement('div');
                     div.className = `item-card rarity-${item.rarity}`;
                     div.onclick = () => sellItem(item.id, item.name);
-                    
                     const icon = icons[item.type] || "⚙️";
-                    
                     div.innerHTML = `
                         <div class="item-icon">${icon}</div>
                         <div class="item-type">${item.type}</div>
@@ -211,6 +217,44 @@
                     Telegram.WebApp.showAlert(data.message);
                 }
                 loadCraftable(); 
+            });
+        }
+
+        function loadLeaderboard() {
+            fetch('/api/leaderboard', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+            .then(res => res.json()).then(data => {
+                const list = document.getElementById('leaderboardList');
+                list.innerHTML = '';
+                
+                if (data.leaderboard.length === 0) {
+                    list.innerHTML = '<div style="text-align:center; color:#888;">Пока нет игроков.</div>';
+                    return;
+                }
+
+                data.leaderboard.forEach((player, index) => {
+                    const isMe = player.id === userId;
+                    
+                    const div = document.createElement('div');
+                    div.className = 'item-card'; 
+                    if (isMe) div.style.border = "2px solid #00ff41";
+                    div.style.marginBottom = "10px";
+                    div.style.display = "flex";
+                    div.style.justifyContent = "space-between";
+                    div.style.alignItems = "center";
+                    div.style.padding = "15px";
+                    
+                    let placeColor = "#888";
+                    if (index === 0) placeColor = "#ffd700";
+                    if (index === 1) placeColor = "#c0c0c0";
+                    if (index === 2) placeColor = "#cd7f32";
+
+                    div.innerHTML = `
+                        <div style="font-size: 18px; font-weight: bold; color: ${placeColor};">#${index + 1}</div>
+                        <div style="font-size: 12px; color: #888;">Хакер ${player.id.toString().slice(-4)}</div>
+                        <div style="font-size: 16px; font-weight: bold; color: #00ff41;">${player.balance} ₽</div>
+                    `;
+                    list.appendChild(div);
+                });
             });
         }
 
