@@ -82,18 +82,28 @@ def get_total_inventory_income(user_id):
 def get_inventory(user_id):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    # Теперь возвращаем и ID предмета
     cursor.execute("SELECT id, item_name, item_type, rarity, income FROM inventory WHERE user_id = ?", (user_id,))
     rows = cursor.fetchall()
     conn.close()
     return [{"id": row[0], "name": row[1], "type": row[2], "rarity": row[3], "income": row[4]} for row in rows]
 
-# Функция для крафта (Улучшения редкости)
+# Умная мастерская: ищем, что можно скрафтить
+def get_craftable_items(user_id):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT item_type, rarity, COUNT(*) FROM inventory WHERE user_id = ? GROUP BY item_type, rarity", (user_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    
+    craftable = []
+    for item_type, rarity, count in rows:
+        if count >= 3 and rarity in ["Обычный", "Редкий", "Эпический", "Легендарный"]:
+            craftable.append({"type": item_type, "rarity": rarity, "count": count})
+    return craftable
+
 def upgrade_rarity(user_id, item_type, current_rarity):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    
-    # Ищем 3 предмета этого типа и редкости
     cursor.execute("SELECT id FROM inventory WHERE user_id = ? AND item_type = ? AND rarity = ? LIMIT 3", (user_id, item_type, current_rarity))
     items = cursor.fetchall()
     
@@ -101,35 +111,29 @@ def upgrade_rarity(user_id, item_type, current_rarity):
         conn.close()
         return False, "Нужно 3 одинаковые детали!"
         
-    # Удаляем эти 3 предмета
     ids_to_delete = [item[0] for item in items]
     cursor.execute(f"DELETE FROM inventory WHERE id IN ({','.join(['?']*len(ids_to_delete))})", ids_to_delete)
     
-    # Определяем следующий уровень и шанс
     next_rarity = ""
     chance = 0
+    new_income = 0
+    
     if current_rarity == "Обычный":
-        next_rarity, chance = "Редкий", 60
-        new_income = 25
+        next_rarity, chance, new_income = "Редкий", 60, 25
     elif current_rarity == "Редкий":
-        next_rarity, chance = "Эпический", 40
-        new_income = 100
+        next_rarity, chance, new_income = "Эпический", 40, 100
     elif current_rarity == "Эпический":
-        next_rarity, chance = "Легендарный", 20
-        new_income = 500
+        next_rarity, chance, new_income = "Легендарный", 20, 500
     elif current_rarity == "Легендарный":
-        next_rarity, chance = "Мифический", 10
-        new_income = 2000
+        next_rarity, chance, new_income = "Мифический", 10, 2000
     else:
         conn.close()
         return False, "Максимальная редкость!"
         
-    # Крутим рулетку
     roll = random.randint(1, 100)
     success = roll <= chance
     
     if success:
-        # Если успех - создаем новую деталь
         new_name = f"Улучшенный {item_type}"
         cursor.execute("INSERT INTO inventory (user_id, item_name, item_type, rarity, income) VALUES (?, ?, ?, ?, ?)", 
                        (user_id, new_name, item_type, next_rarity, new_income))
@@ -137,10 +141,9 @@ def upgrade_rarity(user_id, item_type, current_rarity):
         conn.close()
         return True, f"УСПЕХ! Вы получили {next_rarity} {item_type}!"
     else:
-        # Если неудача - предметы сгорают
         conn.commit()
         conn.close()
-        return False, "НЕУДАЧА! Детали сгорели. Попробуйте еще раз."
+        return False, "НЕУДАЧА! Детали сгорели."
 
 # --- ВЕБ-СЕРВЕР ---
 app = Flask(__name__)
@@ -198,15 +201,25 @@ def api_case():
     new_balance = balance - 50
     update_user(user_id, balance=new_balance)
     
+    # ДОБАВИЛИ КОРПУС И ДРУГИЕ ТИПЫ
     items = [
+        {"name": "Корпус Mini-ITX", "type": "Корпус", "rarity": "Обычный", "income": 5},
         {"name": "Кулер 120мм", "type": "Охлаждение", "rarity": "Обычный", "income": 5},
-        {"name": "Блок питания", "type": "Питание", "rarity": "Обычный", "income": 10},
-        {"name": "Процессор i5", "type": "Процессор", "rarity": "Обычный", "income": 15},
-        {"name": "Материнская плата", "type": "Плата", "rarity": "Обычный", "income": 12},
+        {"name": "Блок питания 500W", "type": "Питание", "rarity": "Обычный", "income": 10},
+        {"name": "Материнская плата B450", "type": "Плата", "rarity": "Обычный", "income": 12},
+        {"name": "Процессор i3", "type": "Процессор", "rarity": "Обычный", "income": 15},
+        
+        {"name": "Корпус ATX RGB", "type": "Корпус", "rarity": "Редкий", "income": 25},
         {"name": "Вентилятор RGB", "type": "Охлаждение", "rarity": "Редкий", "income": 25},
+        {"name": "Блок питания 750W", "type": "Питание", "rarity": "Редкий", "income": 30},
+        {"name": "Материнская плата X570", "type": "Плата", "rarity": "Редкий", "income": 35},
         {"name": "Видеокарта GTX 1660", "type": "Видеокарта", "rarity": "Редкий", "income": 35},
+        
+        {"name": "Корпус Server Full-Tower", "type": "Корпус", "rarity": "Эпический", "income": 100},
+        {"name": "Водяное охлаждение", "type": "Охлаждение", "rarity": "Эпический", "income": 100},
         {"name": "Процессор i7", "type": "Процессор", "rarity": "Эпический", "income": 100},
         {"name": "Видеокарта RTX 3060", "type": "Видеокарта", "rarity": "Эпический", "income": 150},
+        
         {"name": "Процессор i9 Extreme", "type": "Процессор", "rarity": "Легендарный", "income": 500},
         {"name": "Видеокарта RTX 4090", "type": "Видеокарта", "rarity": "Легендарный", "income": 800}
     ]
@@ -220,13 +233,18 @@ def api_get_inventory():
     user_id = data.get('user_id')
     return jsonify({"inventory": get_inventory(user_id)})
 
+@app.route('/api/get_craftable', methods=['POST'])
+def api_get_craftable():
+    data = request.json
+    user_id = data.get('user_id')
+    return jsonify({"craftable": get_craftable_items(user_id)})
+
 @app.route('/api/craft', methods=['POST'])
 def api_craft():
     data = request.json
     user_id = data.get('user_id')
     item_type = data.get('item_type')
     current_rarity = data.get('rarity')
-    
     success, message = upgrade_rarity(user_id, item_type, current_rarity)
     return jsonify({"success": success, "message": message})
 
