@@ -22,18 +22,19 @@ def init_db():
         last_daily INTEGER DEFAULT 0,
         daily_streak INTEGER DEFAULT 0,
         username TEXT DEFAULT 'Хакер',
-        luck_level INTEGER DEFAULT 1
+        luck_level INTEGER DEFAULT 1,
+        referrer_id INTEGER DEFAULT 0,
+        ref_count INTEGER DEFAULT 0
     )''')
-    
-    # Добавляем колонки, если база старая
     try:
+        cursor.execute("ALTER TABLE users ADD COLUMN referrer_id INTEGER DEFAULT 0")
+        cursor.execute("ALTER TABLE users ADD COLUMN ref_count INTEGER DEFAULT 0")
         cursor.execute("ALTER TABLE users ADD COLUMN username TEXT DEFAULT 'Хакер'")
         cursor.execute("ALTER TABLE users ADD COLUMN luck_level INTEGER DEFAULT 1")
         cursor.execute("ALTER TABLE users ADD COLUMN last_daily INTEGER DEFAULT 0")
         cursor.execute("ALTER TABLE users ADD COLUMN daily_streak INTEGER DEFAULT 0")
     except sqlite3.OperationalError:
         pass
-        
     cursor.execute('''CREATE TABLE IF NOT EXISTS inventory (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
@@ -211,19 +212,15 @@ def api_buy_luck():
     user_id = data.get('user_id')
     balance, last_claim, base_income, last_daily, streak, luck = get_user(user_id)
     luck_cost = 1000 * (2 ** (luck - 1))
-    
     if balance < luck_cost:
         return jsonify({"success": False, "message": f"Недостаточно средств! Нужно {luck_cost} ₽."})
-        
     new_balance = balance - luck_cost
     new_luck = luck + 1
-    
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute("UPDATE users SET balance = ?, luck_level = ? WHERE user_id = ?", (new_balance, new_luck, user_id))
     conn.commit()
     conn.close()
-    
     return jsonify({"success": True, "balance": new_balance, "new_luck": new_luck, "next_luck_cost": 1000 * (2 ** new_luck)})
 
 @app.route('/api/claim', methods=['POST'])
@@ -269,7 +266,6 @@ def api_case():
     user_id = data.get('user_id')
     balance, last_claim, base_income, last_daily, streak, luck = get_user(user_id)
     if balance < 50: return jsonify({"success": False, "message": "Недостаточно средств!"})
-    
     new_balance = balance - 50
     update_user(user_id, balance=new_balance)
     
@@ -343,6 +339,20 @@ def api_leaderboard():
     top_players = [{"id": row[0], "name": row[1], "balance": row[2]} for row in rows]
     return jsonify({"leaderboard": top_players})
 
+@app.route('/api/referral', methods=['POST'])
+def api_referral():
+    data = request.json
+    user_id = data.get('user_id')
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT ref_count FROM users WHERE user_id = ?", (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    ref_count = row[0] if row else 0
+    bot_username = "Dark_NetGame"  # <-- ЗАМЕНИТЕ НА ЮЗЕРНЕЙМ ВАШЕГО БОТА
+    link = f"https://t.me/{bot_username}?start=ref_{user_id}"
+    return jsonify({"link": link, "count": ref_count})
+
 @app.route('/api/buy_premium_case', methods=['POST'])
 def api_buy_premium_case():
     data = request.json
@@ -363,7 +373,32 @@ bot = telebot.TeleBot(TOKEN)
 @bot.message_handler(commands=['start'])
 def start(message):
     init_db()
-    get_user(message.from_user.id)
+    user_id = message.from_user.id
+    args = message.text.split()
+    
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
+    existing_user = cursor.fetchone()
+    
+    if not existing_user and len(args) > 1 and args[1].startswith("ref_"):
+        try:
+            referrer_id = int(args[1].split("_")[1])
+            if referrer_id != user_id:
+                now = int(time.time())
+                cursor.execute("INSERT INTO users (user_id, last_claim, referrer_id) VALUES (?, ?, ?)", (user_id, now, referrer_id))
+                cursor.execute("UPDATE users SET balance = balance + 1000 WHERE user_id = ?", (user_id,))
+                cursor.execute("UPDATE users SET balance = balance + 1000, ref_count = ref_count + 1 WHERE user_id = ?", (referrer_id,))
+                conn.commit()
+                conn.close()
+                bot.send_message(user_id, "🟢 Терминал подключен!\n🎁 Вы получили 1000 ₽ за вход по приглашению!")
+                bot.send_message(referrer_id, f"🔥 По вашей ссылке зашел новый хакер! Вы получили 1000 ₽.")
+                return
+        except:
+            pass
+
+    get_user(user_id)
+    conn.close()
     bot.send_message(message.chat.id, "🟢 Терминал подключен! Нажми на кнопку 'Играть' внизу.")
 
 @bot.pre_checkout_query_handler(func=lambda query: True)
