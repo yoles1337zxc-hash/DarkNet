@@ -51,12 +51,15 @@ def get_user(user_id):
     cursor = conn.cursor()
     cursor.execute("SELECT balance, last_claim, base_income, last_daily, daily_streak, luck_level FROM users WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
+    
     if not row:
+        # Новый игрок получает 10 000 ₽
         now = int(time.time())
-        cursor.execute("INSERT INTO users (user_id, last_claim) VALUES (?, ?)", (user_id, now))
+        cursor.execute("INSERT INTO users (user_id, last_claim, balance) VALUES (?, ?, ?)", (user_id, now, 10000))
         conn.commit()
         conn.close()
-        return 0, now, 10, 0, 0, 1
+        return 10000, now, 10, 0, 0, 1
+        
     conn.close()
     return row[0], row[1], row[2], row[3], row[4], row[5]
 
@@ -349,7 +352,7 @@ def api_referral():
     row = cursor.fetchone()
     conn.close()
     ref_count = row[0] if row else 0
-    bot_username = "Dark_NetGame"  # <-- ЗАМЕНИТЕ НА ЮЗЕРНЕЙМ ВАШЕГО БОТА
+    bot_username = "MyNetRunnerBot"  # <-- ЗАМЕНИТЕ НА ЮЗЕРНЕЙМ ВАШЕГО БОТА
     link = f"https://t.me/{bot_username}?start=ref_{user_id}"
     return jsonify({"link": link, "count": ref_count})
 
@@ -386,7 +389,7 @@ def start(message):
             referrer_id = int(args[1].split("_")[1])
             if referrer_id != user_id:
                 now = int(time.time())
-                cursor.execute("INSERT INTO users (user_id, last_claim, referrer_id) VALUES (?, ?, ?)", (user_id, now, referrer_id))
+                cursor.execute("INSERT INTO users (user_id, last_claim, referrer_id, balance) VALUES (?, ?, ?, ?)", (user_id, now, referrer_id, 10000))
                 cursor.execute("UPDATE users SET balance = balance + 1000 WHERE user_id = ?", (user_id,))
                 cursor.execute("UPDATE users SET balance = balance + 1000, ref_count = ref_count + 1 WHERE user_id = ?", (referrer_id,))
                 conn.commit()
