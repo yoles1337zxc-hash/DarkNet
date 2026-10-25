@@ -91,11 +91,24 @@
         <div id="leaderboardList" style="width: 100%; padding-bottom: 80px;"></div>
     </div>
 
+    <div id="tab-friends" class="tab-content">
+        <h2 style="margin-top: 20px; margin-bottom: 20px; color: #ffd700;">ЗОВИ ДРУЗЕЙ</h2>
+        <div class="balance-card" style="padding: 15px;">
+            <div style="font-size: 14px; color: #fff; margin-bottom: 10px;">Приглашено друзей:</div>
+            <div style="font-size: 32px; font-weight: bold; color: #ffd700;" id="refCount">0</div>
+        </div>
+        <p style="font-size: 11px; color: #888; text-align: center; margin-bottom: 15px; line-height: 1.5;">
+            Пригласи друга по ссылке и получи <b>1000 ₽</b>.<br>Твой друг тоже получит <b>1000 ₽</b>!
+        </p>
+        <button class="btn" id="copyRefBtn" style="border-color: #ffd700; color: #ffd700;">Скопировать ссылку</button>
+    </div>
+
     <div class="nav-bar">
         <button class="nav-btn active" onclick="switchTab('main', this)">💻</button>
         <button class="nav-btn" onclick="switchTab('inventory', this)">⚙️</button>
         <button class="nav-btn" onclick="switchTab('craft', this)">🔧</button>
         <button class="nav-btn" onclick="switchTab('leaderboard', this)">🏆</button>
+        <button class="nav-btn" onclick="switchTab('friends', this)">🎁</button>
     </div>
 
     <script>
@@ -118,6 +131,7 @@
             if(tabName === 'inventory') loadInventory();
             if(tabName === 'craft') loadCraftable();
             if(tabName === 'leaderboard') loadLeaderboard();
+            if(tabName === 'friends') loadReferral();
         }
 
         function updateUI(balance, income, upgradeCost, luckLevel, luckCost) {
@@ -217,6 +231,19 @@
                     div.innerHTML = `<div style="font-size: 18px; font-weight: bold; color: ${placeColor};">#${index + 1}</div><div style="font-size: 14px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px;">${player.name}</div><div style="font-size: 16px; font-weight: bold; color: #00ff41;">${player.balance} ₽</div>`;
                     list.appendChild(div);
                 });
+            });
+        }
+
+        function loadReferral() {
+            fetch('/api/referral', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+            .then(res => res.json()).then(data => {
+                document.getElementById('refCount').innerText = data.count;
+                document.getElementById('copyRefBtn').onclick = () => {
+                    navigator.clipboard.writeText(data.link).then(() => {
+                        Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                        Telegram.WebApp.showAlert("Ссылка скопирована! Отправь её друзьям.");
+                    });
+                };
             });
         }
 
