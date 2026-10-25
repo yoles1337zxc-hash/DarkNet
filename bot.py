@@ -21,16 +21,14 @@ def init_db():
         base_income INTEGER DEFAULT 10,
         last_daily INTEGER DEFAULT 0,
         daily_streak INTEGER DEFAULT 0,
-        username TEXT DEFAULT 'Хакер'
+        username TEXT DEFAULT 'Хакер',
+        luck_level INTEGER DEFAULT 1
     )''')
     
-    # Добавляем колонку username, если база старая
+    # Добавляем колонки, если база старая
     try:
         cursor.execute("ALTER TABLE users ADD COLUMN username TEXT DEFAULT 'Хакер'")
-    except sqlite3.OperationalError:
-        pass
-        
-    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN luck_level INTEGER DEFAULT 1")
         cursor.execute("ALTER TABLE users ADD COLUMN last_daily INTEGER DEFAULT 0")
         cursor.execute("ALTER TABLE users ADD COLUMN daily_streak INTEGER DEFAULT 0")
     except sqlite3.OperationalError:
@@ -46,19 +44,20 @@ def init_db():
     )''')
     conn.commit()
     conn.close()
+
 def get_user(user_id):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute("SELECT balance, last_claim, base_income, last_daily, daily_streak FROM users WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT balance, last_claim, base_income, last_daily, daily_streak, luck_level FROM users WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
     if not row:
         now = int(time.time())
         cursor.execute("INSERT INTO users (user_id, last_claim) VALUES (?, ?)", (user_id, now))
         conn.commit()
         conn.close()
-        return 0, now, 10, 0, 0
+        return 0, now, 10, 0, 0, 1
     conn.close()
-    return row[0], row[1], row[2], row[3], row[4]
+    return row[0], row[1], row[2], row[3], row[4], row[5]
 
 def update_user(user_id, balance=None, last_claim=None, base_income=None, last_daily=None, daily_streak=None):
     conn = sqlite3.connect(DB_FILE)
@@ -172,28 +171,32 @@ def health():
 def api_get_data():
     data = request.json
     user_id = data.get('user_id')
-    username = data.get('username', 'Хакер') # Получаем имя с фронтенда
-    
+    username = data.get('username', 'Хакер')
     if not user_id: return jsonify({"error": "No user_id"}), 400
     init_db()
     
-    # Сохраняем имя в базу (если изменилось)
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute("UPDATE users SET username = ? WHERE user_id = ?", (username, user_id))
     conn.commit()
     conn.close()
     
-    balance, last_claim, base_income, last_daily, streak = get_user(user_id)
+    balance, last_claim, base_income, last_daily, streak, luck = get_user(user_id)
     total_income = base_income + get_total_inventory_income(user_id)
     upgrade_cost = base_income * 10
-    return jsonify({"balance": balance, "income": total_income, "base_income": base_income, "upgrade_cost": upgrade_cost, "streak": streak})
+    luck_cost = 1000 * (2 ** (luck - 1))
+    
+    return jsonify({
+        "balance": balance, "income": total_income, "base_income": base_income, 
+        "upgrade_cost": upgrade_cost, "streak": streak, 
+        "luck_level": luck, "luck_cost": luck_cost
+    })
 
 @app.route('/api/upgrade', methods=['POST'])
 def api_upgrade():
     data = request.json
     user_id = data.get('user_id')
-    balance, last_claim, base_income, last_daily, streak = get_user(user_id)
+    balance, last_claim, base_income, last_daily, streak, luck = get_user(user_id)
     upgrade_cost = base_income * 10
     if balance < upgrade_cost:
         return jsonify({"success": False, "message": f"Недостаточно средств! Нужно {upgrade_cost} ₽."})
@@ -202,11 +205,32 @@ def api_upgrade():
     update_user(user_id, balance=new_balance, base_income=new_base_income)
     return jsonify({"success": True, "balance": new_balance, "total_income": new_base_income + get_total_inventory_income(user_id), "next_upgrade_cost": new_base_income * 10})
 
+@app.route('/api/buy_luck', methods=['POST'])
+def api_buy_luck():
+    data = request.json
+    user_id = data.get('user_id')
+    balance, last_claim, base_income, last_daily, streak, luck = get_user(user_id)
+    luck_cost = 1000 * (2 ** (luck - 1))
+    
+    if balance < luck_cost:
+        return jsonify({"success": False, "message": f"Недостаточно средств! Нужно {luck_cost} ₽."})
+        
+    new_balance = balance - luck_cost
+    new_luck = luck + 1
+    
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET balance = ?, luck_level = ? WHERE user_id = ?", (new_balance, new_luck, user_id))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True, "balance": new_balance, "new_luck": new_luck, "next_luck_cost": 1000 * (2 ** new_luck)})
+
 @app.route('/api/claim', methods=['POST'])
 def api_claim():
     data = request.json
     user_id = data.get('user_id')
-    balance, last_claim, base_income, last_daily, streak = get_user(user_id)
+    balance, last_claim, base_income, last_daily, streak, luck = get_user(user_id)
     total_income = base_income + get_total_inventory_income(user_id)
     now = int(time.time())
     seconds_passed = now - last_claim
@@ -222,7 +246,7 @@ def api_claim():
 def api_daily():
     data = request.json
     user_id = data.get('user_id')
-    balance, last_claim, base_income, last_daily, streak = get_user(user_id)
+    balance, last_claim, base_income, last_daily, streak, luck = get_user(user_id)
     now = int(time.time())
     if now - last_daily < 86400: 
         hours_left = int((86400 - (now - last_daily)) / 3600)
@@ -243,11 +267,19 @@ def api_daily():
 def api_case():
     data = request.json
     user_id = data.get('user_id')
-    balance, last_claim, base_income, last_daily, streak = get_user(user_id)
+    balance, last_claim, base_income, last_daily, streak, luck = get_user(user_id)
     if balance < 50: return jsonify({"success": False, "message": "Недостаточно средств!"})
+    
     new_balance = balance - 50
     update_user(user_id, balance=new_balance)
-    items = [
+    
+    roll = random.randint(1, 100) + (luck * 2)
+    if roll > 95: rarity = "Легендарный"
+    elif roll > 80: rarity = "Эпический"
+    elif roll > 50: rarity = "Редкий"
+    else: rarity = "Обычный"
+
+    all_items = [
         {"name": "Корпус Mini-ITX", "type": "Корпус", "rarity": "Обычный", "income": 5},
         {"name": "Кулер 120мм", "type": "Охлаждение", "rarity": "Обычный", "income": 5},
         {"name": "Блок питания 500W", "type": "Питание", "rarity": "Обычный", "income": 10},
@@ -265,7 +297,10 @@ def api_case():
         {"name": "Процессор i9 Extreme", "type": "Процессор", "rarity": "Легендарный", "income": 500},
         {"name": "Видеокарта RTX 4090", "type": "Видеокарта", "rarity": "Легендарный", "income": 800}
     ]
-    dropped_item = random.choice(items)
+    
+    possible_drops = [item for item in all_items if item["rarity"] == rarity]
+    dropped_item = random.choice(possible_drops)
+    
     add_item_to_inventory(user_id, dropped_item["name"], dropped_item["type"], dropped_item["rarity"], dropped_item["income"])
     return jsonify({"success": True, "item": dropped_item, "balance": new_balance, "total_income": base_income + get_total_inventory_income(user_id)})
 
@@ -291,23 +326,22 @@ def api_craft():
     return jsonify({"success": success, "message": message})
 
 @app.route('/api/sell', methods=['POST'])
-@app.route('/api/leaderboard', methods=['POST'])
-def api_leaderboard():
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    # Достаем топ-10 игроков по балансу вместе с их именами
-    cursor.execute("SELECT user_id, username, balance FROM users ORDER BY balance DESC LIMIT 10")
-    rows = cursor.fetchall()
-    conn.close()
-    
-    top_players = [{"id": row[0], "name": row[1], "balance": row[2]} for row in rows]
-    return jsonify({"leaderboard": top_players})
 def api_sell():
     data = request.json
     user_id = data.get('user_id')
     item_id = data.get('item_id')
     success, message = sell_item(user_id, item_id)
     return jsonify({"success": success, "message": message})
+
+@app.route('/api/leaderboard', methods=['POST'])
+def api_leaderboard():
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id, username, balance FROM users ORDER BY balance DESC LIMIT 10")
+    rows = cursor.fetchall()
+    conn.close()
+    top_players = [{"id": row[0], "name": row[1], "balance": row[2]} for row in rows]
+    return jsonify({"leaderboard": top_players})
 
 @app.route('/api/buy_premium_case', methods=['POST'])
 def api_buy_premium_case():
@@ -339,7 +373,7 @@ def checkout(pre_checkout_query: PreCheckoutQuery):
 @bot.message_handler(content_types=['successful_payment'])
 def got_payment(message):
     user_id = message.from_user.id
-    balance, last_claim, base_income, last_daily, streak = get_user(user_id)
+    balance, last_claim, base_income, last_daily, streak, luck = get_user(user_id)
     new_balance = balance + 5000
     update_user(user_id, balance=new_balance)
     add_item_to_inventory(user_id, "Видеокарта RTX 4090", "Видеокарта", "Легендарный", 800)
