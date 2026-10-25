@@ -378,7 +378,7 @@ def api_referral():
     row = cursor.fetchone()
     conn.close()
     ref_count = row[0] if row else 0
-    bot_username = "MyNetRunnerBot"  # <-- ЗАМЕНИТЕ НА ЮЗЕРНЕЙМ ВАШЕГО БОТА
+    bot_username = "Dark_NetGame"  # <-- ЗАМЕНИТЕ НА ЮЗЕРНЕЙМ ВАШЕГО БОТА
     link = f"https://t.me/{bot_username}?start=ref_{user_id}"
     return jsonify({"link": link, "count": ref_count})
 
