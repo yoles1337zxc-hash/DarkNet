@@ -140,7 +140,9 @@
                     const div = document.createElement('div');
                     div.className = `item-card rarity-${item.rarity}`;
                     div.onclick = () => sellItem(item.id, item.name);
+                    
                     const icon = icons[item.type] || "⚙️";
+                    
                     div.innerHTML = `
                         <div class="item-icon">${icon}</div>
                         <div class="item-type">${item.type}</div>
@@ -160,8 +162,8 @@
                         if (data.success) {
                             Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                             Telegram.WebApp.showAlert(data.message);
-                            loadInventory();
-                            loadData();
+                            loadInventory(); 
+                            loadData(); 
                         } else {
                             Telegram.WebApp.showAlert(data.message);
                         }
@@ -232,4 +234,41 @@
             });
         });
 
-        document.getElementById('caseBtn
+        document.getElementById('caseBtn').addEventListener('click', () => {
+            fetch('/api/case', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+            .then(res => res.json()).then(data => {
+                if (data.success) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    Telegram.WebApp.showPopup({ title: "📦 Деталь получена!", message: `Выпало: ${data.item.name}\nТип: ${data.item.type}\nРедкость: ${data.item.rarity}\nДоход: +${data.item.income} ₽/ч`, buttons: [{type: "ok"}] });
+                    loadData(); 
+                } else { Telegram.WebApp.showAlert(data.message); }
+            });
+        });
+
+        document.getElementById('premiumBtn').addEventListener('click', () => {
+            fetch('/api/buy_premium_case', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+            .then(res => res.json()).then(data => {
+                if (data.success) { Telegram.WebApp.showAlert("Счет выставлен! Проверьте чат с ботом."); Telegram.WebApp.close(); } 
+                else { Telegram.WebApp.showAlert("Ошибка."); }
+            });
+        });
+
+        document.getElementById('dailyBtn').addEventListener('click', () => {
+            fetch('/api/daily', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+            .then(res => res.json()).then(data => {
+                if (data.success) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    Telegram.WebApp.showPopup({
+                        title: `🔥 Стрик: ${data.streak} дней!`,
+                        message: `${data.message}\n${data.bonus_case ? '🎁 Вам также выдан бонусный кейс!' : ''}`,
+                        buttons: [{type: "ok"}]
+                    });
+                    loadData();
+                } else {
+                    Telegram.WebApp.showAlert(data.message);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
