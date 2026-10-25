@@ -28,10 +28,11 @@
         .btn-premium { border-color: #ffd700; color: #ffd700; box-shadow: 0 0 10px #ffd700; }
         .btn-premium:active { background: #ffd700; color: #0a0a0a; }
 
+        /* Стили инвентаря */
         .inventory-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-top: 10px; padding-bottom: 80px; }
-        .item-card { background: #111; border: 1px solid #333; padding: 10px; border-radius: 8px; text-align: center; }
-        .item-name { font-size: 12px; color: #fff; margin-bottom: 5px; }
-        .item-rarity { font-size: 10px; color: #888; margin-bottom: 5px; }
+        .item-card { background: #111; border: 1px solid #333; padding: 10px; border-radius: 8px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; }
+        .item-type { font-size: 10px; color: #888; text-transform: uppercase; margin-bottom: 5px; }
+        .item-name { font-size: 12px; color: #fff; margin-bottom: 5px; font-weight: bold; }
         .item-income { font-size: 12px; color: #00ff41; font-weight: bold; }
         
         .rarity-Обычный { border-color: #888; box-shadow: 0 0 5px #888; }
@@ -54,24 +55,21 @@
         </div>
         
         <button class="btn" id="claimBtn">Взломать и забрать</button>
-        
-        <!-- Новая кнопка апгрейда -->
         <button class="btn btn-upgrade" id="upgradeBtn">Улучшить сервер: ... ₽</button>
-        
-        <button class="btn btn-case" id="caseBtn">Открыть кейс (50 ₽)</button>
-        <button class="btn btn-premium" id="premiumBtn">Премиум-взлом (15 ⭐️)</button>
+        <button class="btn btn-case" id="caseBtn">Купить деталь (50 ₽)</button>
+        <button class="btn btn-premium" id="premiumBtn">Премиум-деталь (15 ⭐️)</button>
     </div>
 
     <!-- Вкладка 2: Арсенал (Инвентарь) -->
     <div id="tab-inventory" class="tab-content">
-        <h2 style="margin-top: 20px; margin-bottom: 10px;">МОЙ АРСЕНАЛ</h2>
+        <h2 style="margin-top: 20px; margin-bottom: 10px;">СТОЙКА СЕРВЕРА</h2>
         <div class="inventory-grid" id="inventoryGrid"></div>
     </div>
 
     <!-- Нижнее меню -->
     <div class="nav-bar">
         <button class="nav-btn active" onclick="switchTab('main', this)">💻</button>
-        <button class="nav-btn" onclick="switchTab('inventory', this)">🎒</button>
+        <button class="nav-btn" onclick="switchTab('inventory', this)">⚙️</button>
     </div>
 
     <script>
@@ -87,7 +85,6 @@
             if(tabName === 'inventory') loadInventory();
         }
 
-        // Обновляем кнопку апгрейда тоже
         function updateUI(balance, income, upgradeCost) {
             document.getElementById('balance').innerText = balance + " ₽";
             document.getElementById('income').innerText = "Доход: " + income + " ₽/ч";
@@ -106,13 +103,17 @@
                 const grid = document.getElementById('inventoryGrid');
                 grid.innerHTML = ''; 
                 if (data.inventory.length === 0) {
-                    grid.innerHTML = '<div style="grid-column: span 2; text-align:center; color:#888;">Арсенал пуст. Открывай кейсы!</div>';
+                    grid.innerHTML = '<div style="grid-column: span 2; text-align:center; color:#888;">Стойка пуста. Покупай детали!</div>';
                     return;
                 }
                 data.inventory.forEach(item => {
                     const div = document.createElement('div');
                     div.className = `item-card rarity-${item.rarity}`;
-                    div.innerHTML = `<div class="item-name">${item.name}</div><div class="item-rarity">${item.rarity}</div><div class="item-income">+${item.income} ₽/ч</div>`;
+                    div.innerHTML = `
+                        <div class="item-type">${item.type}</div>
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-income">+${item.income} ₽/ч</div>
+                    `;
                     grid.appendChild(div);
                 });
             });
@@ -123,12 +124,10 @@
             .then(res => res.json()).then(data => {
                 if (data.earned > 0) { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); Telegram.WebApp.showAlert(`Вы забрали ${data.earned} ₽!`); } 
                 else { Telegram.WebApp.showAlert("Сеть еще не накопила данные. Подожди!"); }
-                // Перезапрашиваем данные, чтобы обновить кнопку апгрейда
                 loadData();
             });
         });
 
-        // Логика кнопки Апгрейда
         document.getElementById('upgradeBtn').addEventListener('click', () => {
             fetch('/api/upgrade', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
             .then(res => res.json()).then(data => {
@@ -147,8 +146,8 @@
             .then(res => res.json()).then(data => {
                 if (data.success) {
                     Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    Telegram.WebApp.showPopup({ title: "📦 Архив вскрыт!", message: `Выпало: ${data.item.name}\nРедкость: ${data.item.rarity}\nДоход: +${data.item.income} ₽/ч`, buttons: [{type: "ok"}] });
-                    loadData(); // Обновляем все данные (включая цену апгрейда)
+                    Telegram.WebApp.showPopup({ title: "📦 Деталь получена!", message: `Выпало: ${data.item.name}\nТип: ${data.item.type}\nРедкость: ${data.item.rarity}\nДоход: +${data.item.income} ₽/ч`, buttons: [{type: "ok"}] });
+                    loadData(); 
                 } else { Telegram.WebApp.showAlert(data.message); }
             });
         });
