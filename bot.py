@@ -75,8 +75,14 @@ def health():
 def api_get_data():
     data = request.json
     user_id = data.get('user_id')
-    if not user_id: return jsonify({"error": "No user_id"}), 400
-    balance, last_claim, base_income = get_user(user_id)
+    if not user_id: 
+        return jsonify({"error": "No user_id"}), 400
+        
+    init_db() # Проверяем, что таблицы существуют
+    
+    # Эта функция сама создаст юзера, если его нет
+    balance, last_claim, base_income = get_user(user_id) 
+    
     return jsonify({"balance": balance, "income": base_income})
 
 @app.route('/api/claim', methods=['POST'])
