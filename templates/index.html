@@ -102,7 +102,11 @@
     <script>
         Telegram.WebApp.ready();
         Telegram.WebApp.expand(); 
+        
+        // Получаем ID и имя из Telegram
         const userId = Telegram.WebApp.initDataUnsafe.user.id;
+        const tgUser = Telegram.WebApp.initDataUnsafe.user;
+        const userName = tgUser.username || tgUser.first_name || 'Хакер';
 
         const icons = {
             "Процессор": "🔲",
@@ -129,8 +133,13 @@
             document.getElementById('upgradeBtn').innerText = `Улучшить сервер (${upgradeCost} ₽)`;
         }
 
+        // ОТПРАВЛЯЕМ ИМЯ НА СЕРВЕР
         function loadData() {
-            fetch('/api/get_data', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+            fetch('/api/get_data', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ user_id: userId, username: userName }) 
+            })
             .then(res => res.json()).then(data => updateUI(data.balance, data.income, data.upgrade_cost));
         }
         loadData();
@@ -250,7 +259,7 @@
 
                     div.innerHTML = `
                         <div style="font-size: 18px; font-weight: bold; color: ${placeColor};">#${index + 1}</div>
-                        <div style="font-size: 12px; color: #888;">Хакер ${player.id.toString().slice(-4)}</div>
+                        <div style="font-size: 14px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px;">${player.name}</div>
                         <div style="font-size: 16px; font-weight: bold; color: #00ff41;">${player.balance} ₽</div>
                     `;
                     list.appendChild(div);
