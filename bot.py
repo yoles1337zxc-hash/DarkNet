@@ -45,7 +45,6 @@ def update_balance_and_time(user_id, new_balance, new_time):
     conn.commit()
     conn.close()
 
-
 # --- ВЕБ-СЕРВЕР (API ДЛЯ MINI APP) ---
 app = Flask(__name__)
 
@@ -57,42 +56,8 @@ def health():
 def api_get_data():
     data = request.json
     user_id = data.get('user_id')
-    @app.route('/api/case', methods=['POST'])
-def api_case():
-    data = request.json
-    user_id = data.get('user_id')
-    
-    balance, last_claim, base_income = get_user(user_id)
-    
-    # Проверяем, хватает ли денег
-    if balance < 50:
-        return jsonify({"success": False, "message": "Недостаточно средств! Нужно 50 ₽."})
-        
-    # Списываем 50 монет
-    new_balance = balance - 50
-    update_balance_and_time(user_id, new_balance, last_claim)
-    
-    # Выдаем случайный предмет
-    items = [
-        {"name": "Скрипт 'Червь'", "rarity": "Обычный"},
-        {"name": "Троян-невидимка", "rarity": "Обычный"},
-        {"name": "Бот-парсер", "rarity": "Редкий"},
-        {"name": "Нейросеть 'Оракул'", "rarity": "Эпический"},
-        {"name": "Абсолютный Бэкдор", "rarity": "Легендарный"}
-    ]
-    
-    dropped_item = random.choice(items)
-    
-    return jsonify({
-        "success": True, 
-        "item": dropped_item, 
-        "balance": new_balance
-    })
-
-    
     if not user_id:
         return jsonify({"error": "No user_id"}), 400
-        
     balance, last_claim, base_income = get_user(user_id)
     return jsonify({"balance": balance, "income": base_income})
 
@@ -100,14 +65,11 @@ def api_case():
 def api_claim():
     data = request.json
     user_id = data.get('user_id')
-    
     balance, last_claim, base_income = get_user(user_id)
     now = int(time.time())
     
-    # Считаем прошедшее время (макс 4 часа)
     seconds_passed = now - last_claim
     hours_passed = min(seconds_passed / 3600.0, 4.0)
-    
     earned = int(base_income * hours_passed)
     
     if earned < 1:
@@ -115,13 +77,34 @@ def api_claim():
         
     new_balance = balance + earned
     update_balance_and_time(user_id, new_balance, now)
-    
     return jsonify({"balance": new_balance, "earned": earned, "message": "Успех!"})
+
+@app.route('/api/case', methods=['POST'])
+def api_case():
+    data = request.json
+    user_id = data.get('user_id')
+    balance, last_claim, base_income = get_user(user_id)
+    
+    if balance < 50:
+        return jsonify({"success": False, "message": "Недостаточно средств! Нужно 50 ₽."})
+        
+    new_balance = balance - 50
+    update_balance_and_time(user_id, new_balance, last_claim)
+    
+    items = [
+        {"name": "Скрипт 'Червь'", "rarity": "Обычный"},
+        {"name": "Троян-невидимка", "rarity": "Обычный"},
+        {"name": "Бот-парсер", "rarity": "Редкий"},
+        {"name": "Нейросеть 'Оракул'", "rarity": "Эпический"},
+        {"name": "Абсолютный Бэкдор", "rarity": "Легендарный"}
+    ]
+    dropped_item = random.choice(items)
+    
+    return jsonify({"success": True, "item": dropped_item, "balance": new_balance})
 
 def run_web():
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-
 
 # --- БОТ TELEGRAM ---
 bot = telebot.TeleBot(TOKEN)
