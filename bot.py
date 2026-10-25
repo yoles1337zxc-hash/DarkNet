@@ -155,7 +155,6 @@ def sell_item(user_id, item_id):
     if not row:
         conn.close()
         return False, "Предмет не найден!"
-    # Продажа за 50% от стоимости (доход * 10 / 2)
     sell_price = int(row[0] * 5) 
     cursor.execute("DELETE FROM inventory WHERE id = ?", (item_id,))
     cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (sell_price, user_id))
@@ -186,8 +185,8 @@ def api_get_data():
     
     balance, last_claim, base_income, last_daily, streak, luck = get_user(user_id)
     total_income = base_income + get_total_inventory_income(user_id)
-    upgrade_cost = base_income * 20 # Улучшение теперь дороже
-    luck_cost = 5000 * (2 ** (luck - 1)) # Удача тоже дороже
+    upgrade_cost = base_income * 20 
+    luck_cost = 5000 * (2 ** (luck - 1)) 
     
     return jsonify({
         "balance": balance, "income": total_income, "base_income": base_income, 
@@ -204,7 +203,7 @@ def api_upgrade():
     if balance < upgrade_cost:
         return jsonify({"success": False, "message": f"Недостаточно средств! Нужно {upgrade_cost} ₽."})
     new_balance = balance - upgrade_cost
-    new_base_income = base_income + 5 # Дает по +5 к базовому доходу
+    new_base_income = base_income + 5
     update_user(user_id, balance=new_balance, base_income=new_base_income)
     return jsonify({"success": True, "balance": new_balance, "total_income": new_base_income + get_total_inventory_income(user_id), "next_upgrade_cost": new_base_income * 20})
 
@@ -292,7 +291,7 @@ def api_case():
     rarity_pool = []
     for rarity, chance in chances.items():
         if rarity != "Обычный":
-            chance += luck * 1 # Удача добавляет 1% к шансам
+            chance += luck * 1 
         rarity_pool.extend([rarity] * chance)
         
     while len(rarity_pool) < 100:
@@ -416,7 +415,6 @@ def start(message):
             referrer_id = int(args[1].split("_")[1])
             if referrer_id != user_id:
                 now = int(time.time())
-                # Новый игрок получает 2000 + 1000 за рефку = 3000
                 cursor.execute("INSERT INTO users (user_id, last_claim, referrer_id, balance, base_income) VALUES (?, ?, ?, ?, ?)", (user_id, now, referrer_id, 2000, 5))
                 cursor.execute("UPDATE users SET balance = balance + 1000 WHERE user_id = ?", (user_id,))
                 cursor.execute("UPDATE users SET balance = balance + 1000, ref_count = ref_count + 1 WHERE user_id = ?", (referrer_id,))
