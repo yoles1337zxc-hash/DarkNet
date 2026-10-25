@@ -6,136 +6,122 @@
     <title>NetRunner</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * import os
-import threading
-import sqlite3
-import random
-import time
-import telebot
-from flask import Flask, render_template, request, jsonify
-
-TOKEN = os.environ.get("BOT_TOKEN")
-DB_FILE = "game.db"
-
-# --- БАЗА ДАННЫХ ---
-def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY,
-            balance INTEGER DEFAULT 0,
-            last_claim INTEGER DEFAULT 0,
-            base_income INTEGER DEFAULT 10
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-def get_user(user_id):
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute("SELECT balance, last_claim, base_income FROM users WHERE user_id = ?", (user_id,))
-    row = cursor.fetchone()
-    if not row:
-        now = int(time.time())
-        cursor.execute("INSERT INTO users (user_id, last_claim) VALUES (?, ?)", (user_id, now))
-        conn.commit()
-        conn.close()
-        return 0, now, 10
-    conn.close()
-    return row[0], row[1], row[2]
-
-def update_balance_and_time(user_id, new_balance, new_time):
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute("UPDATE users SET balance = ?, last_claim = ? WHERE user_id = ?", (new_balance, new_time, user_id))
-    conn.commit()
-    conn.close()
-
-
-# --- ВЕБ-СЕРВЕР (API ДЛЯ MINI APP) ---
-app = Flask(__name__)
-
-@app.route('/')
-def health():
-    return render_template('index.html')
-
-@app.route('/api/get_data', methods=['POST'])
-def api_get_data():
-    data = request.json
-    user_id = data.get('user_id')
-    
-    if not user_id:
-        return jsonify({"error": "No user_id"}), 400
-        
-    balance, last_claim, base_income = get_user(user_id)
-    return jsonify({"balance": balance, "income": base_income})
-
-@app.route('/api/claim', methods=['POST'])
-def api_claim():
-    data = request.json
-    user_id = data.get('user_id')
-    
-    balance, last_claim, base_income = get_user(user_id)
-    now = int(time.time())
-    
-    # Считаем прошедшее время (макс 4 часа)
-    seconds_passed = now - last_claim
-    hours_passed = min(seconds_passed / 3600.0, 4.0)
-    
-    earned = int(base_income * hours_passed)
-    
-    if earned < 1:
-        return jsonify({"balance": balance, "earned": 0, "message": "Слишком рано!"})
-        
-    new_balance = balance + earned
-    update_balance_and_time(user_id, new_balance, now)
-    
-    return jsonify({"balance": new_balance, "earned": earned, "message": "Успех!"})
-
-def run_web():
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
-
-
-# --- БОТ TELEGRAM ---
-bot = telebot.TeleBot(TOKEN)
-
-@bot.message_handler(commands=['start'])
-def start(message):
-    init_db()
-    get_user(message.from_user.id)
-    bot.send_message(message.chat.id, "🟢 Терминал подключен! Нажми на кнопку 'Играть' внизу.")
-
-threading.Thread(target=run_web, daemon=True).start()
-
-print("Бот запущен...")
-bot.infinity_polling()
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Courier New', Courier, monospace; }
+        body { 
+            background-color: #0a0a0a; 
+            color: #00ff41; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding: 20px; 
+            min-height: 100vh; 
+        }
+        .balance-card { 
+            background: #111; 
+            border: 1px solid #00ff41; 
+            border-radius: 10px; 
+            padding: 20px; 
+            width: 100%; 
+            max-width: 400px; 
+            text-align: center; 
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.2); 
+            margin-bottom: 20px; 
+            margin-top: 20px; 
+        }
+        .balance-amount { 
+            font-size: 48px; 
+            font-weight: bold; 
+            text-shadow: 0 0 10px #00ff41; 
+        }
+        .income-text { 
+            color: #b026ff; 
+            font-size: 14px; 
+            margin-top: 5px; 
+            text-shadow: 0 0 5px #b026ff; 
+        }
+        .btn { 
+            width: 100%; 
+            max-width: 400px; 
+            padding: 18px; 
+            background: transparent; 
+            border: 2px solid #00ff41; 
+            color: #00ff41; 
+            font-size: 18px; 
+            font-weight: bold; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            box-shadow: 0 0 10px #00ff41; 
+            text-transform: uppercase; 
+            margin-bottom: 15px; 
+            transition: 0.2s; 
+        }
+        .btn:active { 
+            background: #00ff41; 
+            color: #0a0a0a; 
+        }
+        .btn-case { 
+            border-color: #b026ff; 
+            color: #b026ff; 
+            box-shadow: 0 0 10px #b026ff; 
+        }
+        .btn-case:active { 
+            background: #b026ff; 
+            color: #0a0a0a; 
+        }
     </style>
 </head>
 <body>
     <div class="balance-card">
         <div>БАЛАНС</div>
-        <div class="balance-amount" id="balance">0 ₽</div>
-        <div class="income-text" id="income">Доход: 10 ₽/ч</div>
+        <div class="balance-amount" id="balance">Загрузка...</div>
+        <div class="income-text" id="income">Доход: ...</div>
     </div>
 
     <button class="btn" id="claimBtn">Взломать и забрать</button>
     <button class="btn btn-case" id="caseBtn">Открыть кейс (50 ₽)</button>
 
     <script>
-        // Инициализация Telegram
         Telegram.WebApp.ready();
-        Telegram.WebApp.expand(); // Развернуть на весь экран
-
-        // Пока просто заглушка (приветствие)
-        document.getElementById('claimBtn').addEventListener('click', () => {
-            Telegram.WebApp.showAlert("Кнопка работает! Скоро тут будут деньги.");
-        });
+        Telegram.WebApp.expand(); 
         
+        const userId = Telegram.WebApp.initDataUnsafe.user.id;
+
+        function updateUI(balance, income) {
+            document.getElementById('balance').innerText = balance + " ₽";
+            document.getElementById('income').innerText = "Доход: " + income + " ₽/ч";
+        }
+
+        // Загрузка данных
+        fetch('/api/get_data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId })
+        })
+        .then(res => res.json())
+        .then(data => updateUI(data.balance, data.income))
+        .catch(err => console.log(err));
+
+        // Кнопка Забрать
+        document.getElementById('claimBtn').addEventListener('click', () => {
+            fetch('/api/claim', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.earned > 0) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    Telegram.WebApp.showAlert(`Вы забрали ${data.earned} ₽!`);
+                } else {
+                    Telegram.WebApp.showAlert("Сеть еще не накопила данные. Подожди!");
+                }
+                updateUI(data.balance, 10);
+            });
+        });
+
         document.getElementById('caseBtn').addEventListener('click', () => {
-            Telegram.WebApp.showAlert("Кейс пока не работает.");
+            Telegram.WebApp.showAlert("Кейсы подключим на следующем шаге!");
         });
     </script>
 </body>
