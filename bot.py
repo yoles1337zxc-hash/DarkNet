@@ -18,7 +18,7 @@ def init_db():
         user_id INTEGER PRIMARY KEY, 
         balance INTEGER DEFAULT 0, 
         last_claim INTEGER DEFAULT 0, 
-        base_income INTEGER DEFAULT 10,
+        base_income INTEGER DEFAULT 5,
         last_daily INTEGER DEFAULT 0,
         daily_streak INTEGER DEFAULT 0,
         username TEXT DEFAULT 'Хакер',
@@ -51,15 +51,13 @@ def get_user(user_id):
     cursor = conn.cursor()
     cursor.execute("SELECT balance, last_claim, base_income, last_daily, daily_streak, luck_level FROM users WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
-    
     if not row:
-        # Новый игрок получает 10 000 ₽
+        # Новый игрок: баланс 2000, базовый доход 5
         now = int(time.time())
-        cursor.execute("INSERT INTO users (user_id, last_claim, balance) VALUES (?, ?, ?)", (user_id, now, 10000))
+        cursor.execute("INSERT INTO users (user_id, last_claim, balance, base_income) VALUES (?, ?, ?, ?)", (user_id, now, 2000, 5))
         conn.commit()
         conn.close()
-        return 10000, now, 10, 0, 0, 1
-        
+        return 2000, now, 5, 0, 0, 1
     conn.close()
     return row[0], row[1], row[2], row[3], row[4], row[5]
 
@@ -157,7 +155,8 @@ def sell_item(user_id, item_id):
     if not row:
         conn.close()
         return False, "Предмет не найден!"
-    sell_price = row[0] * 3
+    # Продажа за 50% от стоимости (доход * 10 / 2)
+    sell_price = int(row[0] * 5) 
     cursor.execute("DELETE FROM inventory WHERE id = ?", (item_id,))
     cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (sell_price, user_id))
     conn.commit()
@@ -187,8 +186,8 @@ def api_get_data():
     
     balance, last_claim, base_income, last_daily, streak, luck = get_user(user_id)
     total_income = base_income + get_total_inventory_income(user_id)
-    upgrade_cost = base_income * 10
-    luck_cost = 1000 * (2 ** (luck - 1))
+    upgrade_cost = base_income * 20 # Улучшение теперь дороже
+    luck_cost = 5000 * (2 ** (luck - 1)) # Удача тоже дороже
     
     return jsonify({
         "balance": balance, "income": total_income, "base_income": base_income, 
@@ -201,20 +200,20 @@ def api_upgrade():
     data = request.json
     user_id = data.get('user_id')
     balance, last_claim, base_income, last_daily, streak, luck = get_user(user_id)
-    upgrade_cost = base_income * 10
+    upgrade_cost = base_income * 20
     if balance < upgrade_cost:
         return jsonify({"success": False, "message": f"Недостаточно средств! Нужно {upgrade_cost} ₽."})
     new_balance = balance - upgrade_cost
-    new_base_income = base_income + 5
+    new_base_income = base_income + 5 # Дает по +5 к базовому доходу
     update_user(user_id, balance=new_balance, base_income=new_base_income)
-    return jsonify({"success": True, "balance": new_balance, "total_income": new_base_income + get_total_inventory_income(user_id), "next_upgrade_cost": new_base_income * 10})
+    return jsonify({"success": True, "balance": new_balance, "total_income": new_base_income + get_total_inventory_income(user_id), "next_upgrade_cost": new_base_income * 20})
 
 @app.route('/api/buy_luck', methods=['POST'])
 def api_buy_luck():
     data = request.json
     user_id = data.get('user_id')
     balance, last_claim, base_income, last_daily, streak, luck = get_user(user_id)
-    luck_cost = 1000 * (2 ** (luck - 1))
+    luck_cost = 5000 * (2 ** (luck - 1))
     if balance < luck_cost:
         return jsonify({"success": False, "message": f"Недостаточно средств! Нужно {luck_cost} ₽."})
     new_balance = balance - luck_cost
@@ -224,7 +223,7 @@ def api_buy_luck():
     cursor.execute("UPDATE users SET balance = ?, luck_level = ? WHERE user_id = ?", (new_balance, new_luck, user_id))
     conn.commit()
     conn.close()
-    return jsonify({"success": True, "balance": new_balance, "new_luck": new_luck, "next_luck_cost": 1000 * (2 ** new_luck)})
+    return jsonify({"success": True, "balance": new_balance, "new_luck": new_luck, "next_luck_cost": 5000 * (2 ** new_luck)})
 
 @app.route('/api/claim', methods=['POST'])
 def api_claim():
@@ -267,16 +266,39 @@ def api_daily():
 def api_case():
     data = request.json
     user_id = data.get('user_id')
+    case_type = data.get('case_type', 'basic')
+    
     balance, last_claim, base_income, last_daily, streak, luck = get_user(user_id)
-    if balance < 50: return jsonify({"success": False, "message": "Недостаточно средств!"})
-    new_balance = balance - 50
+    
+    cases = {
+        "basic": {"price": 100, "chances": {"Обычный": 65, "Редкий": 22, "Эпический": 12, "Легендарный": 1}},
+        "advanced": {"price": 5000, "chances": {"Обычный": 40, "Редкий": 30, "Эпический": 20, "Легендарный": 10}},
+        "pro": {"price": 25000, "chances": {"Редкий": 50, "Эпический": 30, "Легендарный": 20}},
+        "mythic": {"price": 100000, "chances": {"Эпический": 50, "Легендарный": 40, "Мифический": 10}}
+    }
+    
+    if case_type not in cases:
+        return jsonify({"success": False, "message": "Неизвестный тип кейса!"})
+        
+    price = cases[case_type]["price"]
+    chances = cases[case_type]["chances"]
+    
+    if balance < price: 
+        return jsonify({"success": False, "message": f"Недостаточно средств! Нужно {price} ₽."})
+        
+    new_balance = balance - price
     update_user(user_id, balance=new_balance)
     
-    roll = random.randint(1, 100) + (luck * 2)
-    if roll > 95: rarity = "Легендарный"
-    elif roll > 80: rarity = "Эпический"
-    elif roll > 50: rarity = "Редкий"
-    else: rarity = "Обычный"
+    rarity_pool = []
+    for rarity, chance in chances.items():
+        if rarity != "Обычный":
+            chance += luck * 1 # Удача добавляет 1% к шансам
+        rarity_pool.extend([rarity] * chance)
+        
+    while len(rarity_pool) < 100:
+        rarity_pool.append("Обычный")
+        
+    rarity = random.choice(rarity_pool)
 
     all_items = [
         {"name": "Корпус Mini-ITX", "type": "Корпус", "rarity": "Обычный", "income": 5},
@@ -294,10 +316,15 @@ def api_case():
         {"name": "Процессор i7", "type": "Процессор", "rarity": "Эпический", "income": 100},
         {"name": "Видеокарта RTX 3060", "type": "Видеокарта", "rarity": "Эпический", "income": 150},
         {"name": "Процессор i9 Extreme", "type": "Процессор", "rarity": "Легендарный", "income": 500},
-        {"name": "Видеокарта RTX 4090", "type": "Видеокарта", "rarity": "Легендарный", "income": 800}
+        {"name": "Видеокарта RTX 4090", "type": "Видеокарта", "rarity": "Легендарный", "income": 800},
+        {"name": "Квантовый процессор", "type": "Процессор", "rarity": "Мифический", "income": 2500},
+        {"name": "Нейро-видеокарта", "type": "Видеокарта", "rarity": "Мифический", "income": 3000}
     ]
     
     possible_drops = [item for item in all_items if item["rarity"] == rarity]
+    if not possible_drops:
+        possible_drops = [item for item in all_items if item["rarity"] == "Обычный"]
+        
     dropped_item = random.choice(possible_drops)
     
     add_item_to_inventory(user_id, dropped_item["name"], dropped_item["type"], dropped_item["rarity"], dropped_item["income"])
@@ -352,7 +379,7 @@ def api_referral():
     row = cursor.fetchone()
     conn.close()
     ref_count = row[0] if row else 0
-    bot_username = "Dark_NetGame"  # <-- ЗАМЕНИТЕ НА ЮЗЕРНЕЙМ ВАШЕГО БОТА
+    bot_username = "MyNetRunnerBot"  # <-- ЗАМЕНИТЕ НА ЮЗЕРНЕЙМ ВАШЕГО БОТА
     link = f"https://t.me/{bot_username}?start=ref_{user_id}"
     return jsonify({"link": link, "count": ref_count})
 
@@ -389,7 +416,8 @@ def start(message):
             referrer_id = int(args[1].split("_")[1])
             if referrer_id != user_id:
                 now = int(time.time())
-                cursor.execute("INSERT INTO users (user_id, last_claim, referrer_id, balance) VALUES (?, ?, ?, ?)", (user_id, now, referrer_id, 10000))
+                # Новый игрок получает 2000 + 1000 за рефку = 3000
+                cursor.execute("INSERT INTO users (user_id, last_claim, referrer_id, balance, base_income) VALUES (?, ?, ?, ?, ?)", (user_id, now, referrer_id, 2000, 5))
                 cursor.execute("UPDATE users SET balance = balance + 1000 WHERE user_id = ?", (user_id,))
                 cursor.execute("UPDATE users SET balance = balance + 1000, ref_count = ref_count + 1 WHERE user_id = ?", (referrer_id,))
                 conn.commit()
@@ -414,8 +442,8 @@ def got_payment(message):
     balance, last_claim, base_income, last_daily, streak, luck = get_user(user_id)
     new_balance = balance + 5000
     update_user(user_id, balance=new_balance)
-    add_item_to_inventory(user_id, "Видеокарта RTX 4090", "Видеокарта", "Легендарный", 800)
-    bot.send_message(user_id, f"💎 Оплата прошла! Вы получили 5000 ₽ и Легендарную видеокарту!")
+    add_item_to_inventory(user_id, "Нейро-видеокарта", "Видеокарта", "Мифический", 3000)
+    bot.send_message(user_id, f"💎 Оплата прошла! Вы получили 5000 ₽ и Мифическую видеокарту!")
 
 threading.Thread(target=run_web, daemon=True).start()
 print("Бот запущен...")
