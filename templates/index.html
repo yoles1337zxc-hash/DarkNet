@@ -7,67 +7,14 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Courier New', Courier, monospace; }
-        body { 
-            background-color: #0a0a0a; 
-            color: #00ff41; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            padding: 20px; 
-            min-height: 100vh; 
-        }
-        .balance-card { 
-            background: #111; 
-            border: 1px solid #00ff41; 
-            border-radius: 10px; 
-            padding: 20px; 
-            width: 100%; 
-            max-width: 400px; 
-            text-align: center; 
-            box-shadow: 0 0 15px rgba(0, 255, 65, 0.2); 
-            margin-bottom: 20px; 
-            margin-top: 20px; 
-        }
-        .balance-amount { 
-            font-size: 48px; 
-            font-weight: bold; 
-            text-shadow: 0 0 10px #00ff41; 
-        }
-        .income-text { 
-            color: #b026ff; 
-            font-size: 14px; 
-            margin-top: 5px; 
-            text-shadow: 0 0 5px #b026ff; 
-        }
-        .btn { 
-            width: 100%; 
-            max-width: 400px; 
-            padding: 18px; 
-            background: transparent; 
-            border: 2px solid #00ff41; 
-            color: #00ff41; 
-            font-size: 18px; 
-            font-weight: bold; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            box-shadow: 0 0 10px #00ff41; 
-            text-transform: uppercase; 
-            margin-bottom: 15px; 
-            transition: 0.2s; 
-        }
-        .btn:active { 
-            background: #00ff41; 
-            color: #0a0a0a; 
-        }
-        .btn-case { 
-            border-color: #b026ff; 
-            color: #b026ff; 
-            box-shadow: 0 0 10px #b026ff; 
-        }
-        .btn-case:active { 
-            background: #b026ff; 
-            color: #0a0a0a; 
-        }
+        body { background-color: #0a0a0a; color: #00ff41; display: flex; flex-direction: column; align-items: center; padding: 20px; min-height: 100vh; }
+        .balance-card { background: #111; border: 1px solid #00ff41; border-radius: 10px; padding: 20px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 0 15px rgba(0, 255, 65, 0.2); margin-bottom: 20px; margin-top: 20px; }
+        .balance-amount { font-size: 48px; font-weight: bold; text-shadow: 0 0 10px #00ff41; }
+        .income-text { color: #b026ff; font-size: 14px; margin-top: 5px; text-shadow: 0 0 5px #b026ff; }
+        .btn { width: 100%; max-width: 400px; padding: 18px; background: transparent; border: 2px solid #00ff41; color: #00ff41; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 0 10px #00ff41; text-transform: uppercase; margin-bottom: 15px; transition: 0.2s; }
+        .btn:active { background: #00ff41; color: #0a0a0a; }
+        .btn-case { border-color: #b026ff; color: #b026ff; box-shadow: 0 0 10px #b026ff; }
+        .btn-case:active { background: #b026ff; color: #0a0a0a; }
     </style>
 </head>
 <body>
@@ -91,7 +38,6 @@
             document.getElementById('income').innerText = "Доход: " + income + " ₽/ч";
         }
 
-        // Загрузка данных
         fetch('/api/get_data', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -101,7 +47,6 @@
         .then(data => updateUI(data.balance, data.income))
         .catch(err => console.log(err));
 
-        // Кнопка Забрать
         document.getElementById('claimBtn').addEventListener('click', () => {
             fetch('/api/claim', {
                 method: 'POST',
@@ -121,7 +66,25 @@
         });
 
         document.getElementById('caseBtn').addEventListener('click', () => {
-            Telegram.WebApp.showAlert("Кейсы подключим на следующем шаге!");
+            fetch('/api/case', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    Telegram.WebApp.showPopup({
+                        title: "📦 Архив вскрыт!",
+                        message: `Выпало: ${data.item.name}\nРедкость: ${data.item.rarity}`,
+                        buttons: [{type: "ok"}]
+                    });
+                    updateUI(data.balance, 10);
+                } else {
+                    Telegram.WebApp.showAlert(data.message);
+                }
+            });
         });
     </script>
 </body>
