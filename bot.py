@@ -14,7 +14,6 @@ DB_FILE = "game.db"
 def init_db():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    # Создаем таблицу со всеми нужными колонками
     cursor.execute('''CREATE TABLE IF NOT EXISTS users (
         user_id INTEGER PRIMARY KEY, 
         balance INTEGER DEFAULT 0, 
@@ -23,14 +22,11 @@ def init_db():
         last_daily INTEGER DEFAULT 0,
         daily_streak INTEGER DEFAULT 0
     )''')
-    
-    # Пытаемся добавить колонки, если база старая (выдаст ошибку, если они есть, мы ее проглотим)
     try:
         cursor.execute("ALTER TABLE users ADD COLUMN last_daily INTEGER DEFAULT 0")
         cursor.execute("ALTER TABLE users ADD COLUMN daily_streak INTEGER DEFAULT 0")
     except sqlite3.OperationalError:
         pass
-        
     cursor.execute('''CREATE TABLE IF NOT EXISTS inventory (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
@@ -59,16 +55,11 @@ def get_user(user_id):
 def update_user(user_id, balance=None, last_claim=None, base_income=None, last_daily=None, daily_streak=None):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    if balance is not None:
-        cursor.execute("UPDATE users SET balance = ? WHERE user_id = ?", (balance, user_id))
-    if last_claim is not None:
-        cursor.execute("UPDATE users SET last_claim = ? WHERE user_id = ?", (last_claim, user_id))
-    if base_income is not None:
-        cursor.execute("UPDATE users SET base_income = ? WHERE user_id = ?", (base_income, user_id))
-    if last_daily is not None:
-        cursor.execute("UPDATE users SET last_daily = ? WHERE user_id = ?", (last_daily, user_id))
-    if daily_streak is not None:
-        cursor.execute("UPDATE users SET daily_streak = ? WHERE user_id = ?", (daily_streak, user_id))
+    if balance is not None: cursor.execute("UPDATE users SET balance = ? WHERE user_id = ?", (balance, user_id))
+    if last_claim is not None: cursor.execute("UPDATE users SET last_claim = ? WHERE user_id = ?", (last_claim, user_id))
+    if base_income is not None: cursor.execute("UPDATE users SET base_income = ? WHERE user_id = ?", (base_income, user_id))
+    if last_daily is not None: cursor.execute("UPDATE users SET last_daily = ? WHERE user_id = ?", (last_daily, user_id))
+    if daily_streak is not None: cursor.execute("UPDATE users SET daily_streak = ? WHERE user_id = ?", (daily_streak, user_id))
     conn.commit()
     conn.close()
 
@@ -88,8 +79,7 @@ def get_total_inventory_income(user_id):
     if not rows: return 0
     base_inv_income = sum([r[1] for r in rows])
     type_counts = {}
-    for r in rows:
-        type_counts[r[0]] = type_counts.get(r[0], 0) + 1
+    for r in rows: type_counts[r[0]] = type_counts.get(r[0], 0) + 1
     bonus_income = 0
     for t, count in type_counts.items():
         if count >= 3:
@@ -125,14 +115,9 @@ def upgrade_rarity(user_id, item_type, current_rarity):
     if len(items) < 3:
         conn.close()
         return False, "Нужно 3 одинаковые детали!"
-        
     ids_to_delete = [item[0] for item in items]
     cursor.execute(f"DELETE FROM inventory WHERE id IN ({','.join(['?']*len(ids_to_delete))})", ids_to_delete)
-    
-    next_rarity = ""
-    chance = 0
-    new_income = 0
-    
+    next_rarity, chance, new_income = "", 0, 0
     if current_rarity == "Обычный": next_rarity, chance, new_income = "Редкий", 60, 25
     elif current_rarity == "Редкий": next_rarity, chance, new_income = "Эпический", 40, 100
     elif current_rarity == "Эпический": next_rarity, chance, new_income = "Легендарный", 20, 500
@@ -140,10 +125,8 @@ def upgrade_rarity(user_id, item_type, current_rarity):
     else:
         conn.close()
         return False, "Максимальная редкость!"
-        
     roll = random.randint(1, 100)
     success = roll <= chance
-    
     if success:
         new_name = f"Улучшенный {item_type}"
         cursor.execute("INSERT INTO inventory (user_id, item_name, item_type, rarity, income) VALUES (?, ?, ?, ?, ?)", (user_id, new_name, item_type, next_rarity, new_income))
@@ -154,6 +137,21 @@ def upgrade_rarity(user_id, item_type, current_rarity):
         conn.commit()
         conn.close()
         return False, "НЕУДАЧА! Детали сгорели."
+
+def sell_item(user_id, item_id):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT income FROM inventory WHERE id = ? AND user_id = ?", (item_id, user_id))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return False, "Предмет не найден!"
+    sell_price = row[0] * 3
+    cursor.execute("DELETE FROM inventory WHERE id = ?", (item_id,))
+    cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (sell_price, user_id))
+    conn.commit()
+    conn.close()
+    return True, f"Вы продали деталь за {sell_price} ₽!"
 
 # --- ВЕБ-СЕРВЕР ---
 app = Flask(__name__)
@@ -208,38 +206,20 @@ def api_daily():
     user_id = data.get('user_id')
     balance, last_claim, base_income, last_daily, streak = get_user(user_id)
     now = int(time.time())
-    
     if now - last_daily < 86400: 
         hours_left = int((86400 - (now - last_daily)) / 3600)
         return jsonify({"success": False, "message": f"Бонус будет доступен через {hours_left} ч."})
-        
-    if now - last_daily > 172800: 
-        streak = 0
-        
+    if now - last_daily > 172800: streak = 0
     streak += 1
     reward = 100 * streak 
     bonus_case = (streak % 3 == 0) or (streak == 7)
-    
     new_balance = balance + reward
     update_user(user_id, balance=new_balance, last_daily=now, daily_streak=streak)
-    
-    # Если выпал бонусный кейс - даем случайную деталь
     if bonus_case:
-        items = [
-            {"name": "Кулер 120мм", "type": "Охлаждение", "rarity": "Обычный", "income": 5},
-            {"name": "Блок питания", "type": "Питание", "rarity": "Обычный", "income": 10}
-        ]
+        items = [{"name": "Кулер 120мм", "type": "Охлаждение", "rarity": "Обычный", "income": 5}, {"name": "Блок питания", "type": "Питание", "rarity": "Обычный", "income": 10}]
         dropped = random.choice(items)
         add_item_to_inventory(user_id, dropped["name"], dropped["type"], dropped["rarity"], dropped["income"])
-    
-    return jsonify({
-        "success": True, 
-        "balance": new_balance, 
-        "streak": streak, 
-        "reward": reward, 
-        "bonus_case": bonus_case,
-        "message": f"День {streak}! Вы получили {reward} ₽."
-    })
+    return jsonify({"success": True, "balance": new_balance, "streak": streak, "reward": reward, "bonus_case": bonus_case, "message": f"День {streak}! Вы получили {reward} ₽."})
 
 @app.route('/api/case', methods=['POST'])
 def api_case():
@@ -249,7 +229,6 @@ def api_case():
     if balance < 50: return jsonify({"success": False, "message": "Недостаточно средств!"})
     new_balance = balance - 50
     update_user(user_id, balance=new_balance)
-    
     items = [
         {"name": "Корпус Mini-ITX", "type": "Корпус", "rarity": "Обычный", "income": 5},
         {"name": "Кулер 120мм", "type": "Охлаждение", "rarity": "Обычный", "income": 5},
@@ -291,6 +270,14 @@ def api_craft():
     item_type = data.get('item_type')
     current_rarity = data.get('rarity')
     success, message = upgrade_rarity(user_id, item_type, current_rarity)
+    return jsonify({"success": success, "message": message})
+
+@app.route('/api/sell', methods=['POST'])
+def api_sell():
+    data = request.json
+    user_id = data.get('user_id')
+    item_id = data.get('item_id')
+    success, message = sell_item(user_id, item_id)
     return jsonify({"success": success, "message": message})
 
 @app.route('/api/buy_premium_case', methods=['POST'])
