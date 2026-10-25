@@ -4,7 +4,7 @@ import sqlite3
 import random
 import time
 import telebot
-from flask import Flask
+from flask import Flask, render_template, request, jsonify
 
 TOKEN = os.environ.get("BOT_TOKEN")
 DB_FILE = "game.db"
@@ -29,15 +29,12 @@ def get_user(user_id):
     cursor = conn.cursor()
     cursor.execute("SELECT balance, last_claim, base_income FROM users WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
-    
     if not row:
-        # Если юзера нет, создаем его
         now = int(time.time())
         cursor.execute("INSERT INTO users (user_id, last_claim) VALUES (?, ?)", (user_id, now))
         conn.commit()
         conn.close()
         return 0, now, 10
-        
     conn.close()
     return row[0], row[1], row[2]
 
@@ -48,18 +45,51 @@ def update_balance_and_time(user_id, new_balance, new_time):
     conn.commit()
     conn.close()
 
-# --- ВЕБ-СЕРВЕР ДЛЯ RENDER ---
-app = Flask(__name__)
 
-from flask import render_template
+# --- ВЕБ-СЕРВЕР (API ДЛЯ MINI APP) ---
+app = Flask(__name__)
 
 @app.route('/')
 def health():
     return render_template('index.html')
 
+@app.route('/api/get_data', methods=['POST'])
+def api_get_data():
+    data = request.json
+    user_id = data.get('user_id')
+    
+    if not user_id:
+        return jsonify({"error": "No user_id"}), 400
+        
+    balance, last_claim, base_income = get_user(user_id)
+    return jsonify({"balance": balance, "income": base_income})
+
+@app.route('/api/claim', methods=['POST'])
+def api_claim():
+    data = request.json
+    user_id = data.get('user_id')
+    
+    balance, last_claim, base_income = get_user(user_id)
+    now = int(time.time())
+    
+    # Считаем прошедшее время (макс 4 часа)
+    seconds_passed = now - last_claim
+    hours_passed = min(seconds_passed / 3600.0, 4.0)
+    
+    earned = int(base_income * hours_passed)
+    
+    if earned < 1:
+        return jsonify({"balance": balance, "earned": 0, "message": "Слишком рано!"})
+        
+    new_balance = balance + earned
+    update_balance_and_time(user_id, new_balance, now)
+    
+    return jsonify({"balance": new_balance, "earned": earned, "message": "Успех!"})
+
 def run_web():
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
 
 # --- БОТ TELEGRAM ---
 bot = telebot.TeleBot(TOKEN)
@@ -68,55 +98,7 @@ bot = telebot.TeleBot(TOKEN)
 def start(message):
     init_db()
     get_user(message.from_user.id)
-    bot.send_message(message.chat.id, "🟢 Терминал подключен!\nЗаходи раз в 4 часа, чтобы забирать доход.")
-
-@bot.message_handler(commands=['claim'])
-def claim(message):
-    user_id = message.from_user.id
-    balance, last_claim, base_income = get_user(user_id)
-    
-    now = int(time.time())
-    seconds_passed = now - last_claim
-    hours_passed = seconds_passed / 3600.0
-    
-    # Ограничение накопления: максимум 4 часа
-    hours_passed = min(hours_passed, 4.0)
-    
-    # Формула дохода
-    earned = int(base_income * hours_passed)
-    
-    if earned < 1:
-        bot.send_message(message.chat.id, "⏳ Сеть еще не накопила данные. Подожди немного.")
-        return
-        
-    new_balance = balance + earned
-    update_balance_and_time(user_id, new_balance, now)
-    
-    bot.send_message(message.chat.id, f"💸 Вы забрали {earned} ₽.\nБаланс: {new_balance} ₽")
-
-@bot.message_handler(commands=['profile'])
-def profile(message):
-    user_id = message.from_user.id
-    balance, _, base_income = get_user(user_id)
-    bot.send_message(message.chat.id, f"👤 Баланс: {balance} ₽\n📈 Доход: {base_income} ₽/ч")
-
-@bot.message_handler(commands=['case'])
-def case(message):
-    user_id = message.from_user.id
-    balance, last_claim, base_income = get_user(user_id)
-    
-    if balance < 50:
-        bot.send_message(message.chat.id, "❌ Недостаточно средств! Нужно 50 ₽.")
-        return
-        
-    # Списываем 50 кредитов
-    new_balance = balance - 50
-    update_balance_and_time(user_id, new_balance, last_claim)
-    
-    items = ["Скрипт 'Червь'", "Троян-невидимка", "Бот-парсер", "Нейросеть 'Оракул'"]
-    dropped = random.choice(items)
-    
-    bot.send_message(message.chat.id, f"📦 Выпало: {dropped}\nСписано: 50 ₽")
+    bot.send_message(message.chat.id, "🟢 Терминал подключен! Нажми на кнопку 'Играть' внизу.")
 
 threading.Thread(target=run_web, daemon=True).start()
 
