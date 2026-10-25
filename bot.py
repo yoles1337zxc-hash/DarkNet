@@ -14,15 +14,15 @@ DB_FILE = "game.db"
 def init_db():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    # Таблица пользователей
     cursor.execute('CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, balance INTEGER DEFAULT 0, last_claim INTEGER DEFAULT 0, base_income INTEGER DEFAULT 10)')
-    # Новая таблица для инвентаря
+    # Добавили колонку income в инвентарь
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS inventory (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
             item_name TEXT,
-            rarity TEXT
+            rarity TEXT,
+            income INTEGER DEFAULT 0
         )
     ''')
     conn.commit()
@@ -49,20 +49,30 @@ def update_balance_and_time(user_id, new_balance, new_time):
     conn.commit()
     conn.close()
 
-def add_item_to_inventory(user_id, item_name, rarity):
+# Обновленная функция добавления (теперь принимает income)
+def add_item_to_inventory(user_id, item_name, rarity, income):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO inventory (user_id, item_name, rarity) VALUES (?, ?, ?)", (user_id, item_name, rarity))
+    cursor.execute("INSERT INTO inventory (user_id, item_name, rarity, income) VALUES (?, ?, ?, ?)", (user_id, item_name, rarity, income))
     conn.commit()
     conn.close()
+
+# Новая функция: считает общий доход от всех предметов
+def get_total_inventory_income(user_id):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT SUM(income) FROM inventory WHERE user_id = ?", (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row[0] else 0
 
 def get_inventory(user_id):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute("SELECT item_name, rarity FROM inventory WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT item_name, rarity, income FROM inventory WHERE user_id = ?", (user_id,))
     rows = cursor.fetchall()
     conn.close()
-    return [{"name": row[0], "rarity": row[1]} for row in rows]
+    return [{"name": row[0], "rarity": row[1], "income": row[2]} for row in rows]
 
 # --- ВЕБ-СЕРВЕР ---
 app = Flask(__name__)
@@ -75,29 +85,35 @@ def health():
 def api_get_data():
     data = request.json
     user_id = data.get('user_id')
-    if not user_id: 
-        return jsonify({"error": "No user_id"}), 400
-        
-    init_db() # Проверяем, что таблицы существуют
+    if not user_id: return jsonify({"error": "No user_id"}), 400
+    init_db()
     
-    # Эта функция сама создаст юзера, если его нет
-    balance, last_claim, base_income = get_user(user_id) 
+    balance, last_claim, base_income = get_user(user_id)
+    # Считаем общий доход: базовый + от предметов
+    inv_income = get_total_inventory_income(user_id)
+    total_income = base_income + inv_income
     
-    return jsonify({"balance": balance, "income": base_income})
+    return jsonify({"balance": balance, "income": total_income})
 
 @app.route('/api/claim', methods=['POST'])
 def api_claim():
     data = request.json
     user_id = data.get('user_id')
     balance, last_claim, base_income = get_user(user_id)
+    
+    inv_income = get_total_inventory_income(user_id)
+    total_income = base_income + inv_income
+    
     now = int(time.time())
     seconds_passed = now - last_claim
     hours_passed = min(seconds_passed / 3600.0, 4.0)
-    earned = int(base_income * hours_passed)
-    if earned < 1: return jsonify({"balance": balance, "earned": 0, "message": "Слишком рано!"})
+    earned = int(total_income * hours_passed)
+    
+    if earned < 1: return jsonify({"balance": balance, "earned": 0, "message": "Слишком рано!", "total_income": total_income})
+    
     new_balance = balance + earned
     update_balance_and_time(user_id, new_balance, now)
-    return jsonify({"balance": new_balance, "earned": earned, "message": "Успех!"})
+    return jsonify({"balance": new_balance, "earned": earned, "message": "Успех!", "total_income": total_income})
 
 @app.route('/api/case', methods=['POST'])
 def api_case():
@@ -109,19 +125,23 @@ def api_case():
     new_balance = balance - 50
     update_balance_and_time(user_id, new_balance, last_claim)
     
+    # Теперь у предметов есть параметр "income"
     items = [
-        {"name": "Скрипт 'Червь'", "rarity": "Обычный"},
-        {"name": "Троян-невидимка", "rarity": "Обычный"},
-        {"name": "Бот-парсер", "rarity": "Редкий"},
-        {"name": "Нейросеть 'Оракул'", "rarity": "Эпический"},
-        {"name": "Абсолютный Бэкдор", "rarity": "Легендарный"}
+        {"name": "Скрипт 'Червь'", "rarity": "Обычный", "income": 5},
+        {"name": "Троян-невидимка", "rarity": "Обычный", "income": 10},
+        {"name": "Бот-парсер", "rarity": "Редкий", "income": 25},
+        {"name": "Нейросеть 'Оракул'", "rarity": "Эпический", "income": 100},
+        {"name": "Абсолютный Бэкдор", "rarity": "Легендарный", "income": 500}
     ]
     dropped_item = random.choice(items)
     
-    # СОХРАНЯЕМ ПРЕДМЕТ В БАЗУ
-    add_item_to_inventory(user_id, dropped_item["name"], dropped_item["rarity"])
+    add_item_to_inventory(user_id, dropped_item["name"], dropped_item["rarity"], dropped_item["income"])
     
-    return jsonify({"success": True, "item": dropped_item, "balance": new_balance})
+    # Возвращаем обновленный общий доход
+    inv_income = get_total_inventory_income(user_id)
+    total_income = base_income + inv_income
+    
+    return jsonify({"success": True, "item": dropped_item, "balance": new_balance, "total_income": total_income})
 
 @app.route('/api/get_inventory', methods=['POST'])
 def api_get_inventory():
@@ -163,9 +183,9 @@ def got_payment(message):
     balance, last_claim, base_income = get_user(user_id)
     new_balance = balance + 5000
     update_balance_and_time(user_id, new_balance, last_claim)
-    # Выдаем легендарку за донат
-    add_item_to_inventory(user_id, "Абсолютный Бэкдор", "Легендарный")
-    bot.send_message(user_id, f"💎 Оплата прошла! Вы получили 5000 ₽ и Легендарный предмет в инвентарь!")
+    # Выдаем легендарку за донат (с доходом 500)
+    add_item_to_inventory(user_id, "Абсолютный Бэкдор", "Легендарный", 500)
+    bot.send_message(user_id, f"💎 Оплата прошла! Вы получили 5000 ₽ и Легендарный предмет (+500 ₽/ч)!")
 
 threading.Thread(target=run_web, daemon=True).start()
 print("Бот запущен...")
