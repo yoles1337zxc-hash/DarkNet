@@ -15,6 +15,8 @@
         .btn:active { background: #00ff41; color: #0a0a0a; }
         .btn-case { border-color: #b026ff; color: #b026ff; box-shadow: 0 0 10px #b026ff; }
         .btn-case:active { background: #b026ff; color: #0a0a0a; }
+        .btn-premium { border-color: #ffd700; color: #ffd700; box-shadow: 0 0 10px #ffd700; }
+        .btn-premium:active { background: #ffd700; color: #0a0a0a; }
     </style>
 </head>
 <body>
@@ -26,7 +28,7 @@
 
     <button class="btn" id="claimBtn">Взломать и забрать</button>
     <button class="btn btn-case" id="caseBtn">Открыть кейс (50 ₽)</button>
-        <button class="btn" id="premiumBtn" style="border-color: #ffd700; color: #ffd700; box-shadow: 0 0 10px #ffd700;">Премиум-взлом (15 ⭐️)</button>
+    <button class="btn btn-premium" id="premiumBtn">Премиум-взлом (15 ⭐️)</button>
 
     <script>
         Telegram.WebApp.ready();
@@ -39,6 +41,7 @@
             document.getElementById('income').innerText = "Доход: " + income + " ₽/ч";
         }
 
+        // Загрузка данных
         fetch('/api/get_data', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -48,6 +51,7 @@
         .then(data => updateUI(data.balance, data.income))
         .catch(err => console.log(err));
 
+        // Кнопка Забрать
         document.getElementById('claimBtn').addEventListener('click', () => {
             fetch('/api/claim', {
                 method: 'POST',
@@ -66,6 +70,7 @@
             });
         });
 
+        // Кнопка Обычного Кейса
         document.getElementById('caseBtn').addEventListener('click', () => {
             fetch('/api/case', {
                 method: 'POST',
@@ -87,9 +92,9 @@
                 }
             });
         });
-    </script>         // Кнопка Премиум-кейса (Звезды)
+
+        // Кнопка Премиум-кейса (Звезды)
         document.getElementById('premiumBtn').addEventListener('click', () => {
-            // Отправляем запрос на сервер, чтобы он выставил счет
             fetch('/api/buy_premium_case', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -99,11 +104,12 @@
             .then(data => {
                 if (data.success) {
                     Telegram.WebApp.showAlert("Счет выставлен! Проверьте чат с ботом для оплаты.");
-                    Telegram.WebApp.close(); // Закрываем Mini App, чтобы игрок увидел счет в чате
+                    Telegram.WebApp.close(); 
                 } else {
                     Telegram.WebApp.showAlert("Ошибка при создании счета.");
                 }
             });
         });
+    </script>
 </body>
 </html>
