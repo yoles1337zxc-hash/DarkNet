@@ -14,7 +14,15 @@ DB_FILE = "game.db"
 def init_db():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute('CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, balance INTEGER DEFAULT 0, last_claim INTEGER DEFAULT 0, base_income INTEGER DEFAULT 10)')
+    cursor.execute('CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, balance INTEGER DEFAULT 0, last_claim INTEGER DEFAULT 0, base_income INTEGER DEFAULT 10, last_daily INTEGER DEFAULT 0, daily_streak INTEGER DEFAULT 0)')
+    
+    # Добавляем колонки, если их нет (для старых баз)
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN last_daily INTEGER DEFAULT 0")
+        cursor.execute("ALTER TABLE users ADD COLUMN daily_streak INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass # Колонки уже существуют
+        
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS inventory (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,6 +31,10 @@ def init_db():
             item_type TEXT,
             rarity TEXT,
             income INTEGER DEFAULT 0
+        )
+    ''')
+    conn.commit()
+    conn.close()
         )
     ''')
     conn.commit()
