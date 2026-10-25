@@ -5,6 +5,7 @@ import random
 import time
 import telebot
 from flask import Flask, render_template, request, jsonify
+from telebot.types import LabeledPrice, PreCheckoutQuery
 
 TOKEN = os.environ.get("BOT_TOKEN")
 DB_FILE = "game.db"
@@ -45,7 +46,7 @@ def update_balance_and_time(user_id, new_balance, new_time):
     conn.commit()
     conn.close()
 
-# --- ВЕБ-СЕРВЕР (API ДЛЯ MINI APP) ---
+# --- ВЕБ-СЕРВЕР ---
 app = Flask(__name__)
 
 @app.route('/')
@@ -56,8 +57,6 @@ def health():
 def api_get_data():
     data = request.json
     user_id = data.get('user_id')
-    if not user_id:
-        return jsonify({"error": "No user_id"}), 400
     balance, last_claim, base_income = get_user(user_id)
     return jsonify({"balance": balance, "income": base_income})
 
@@ -106,7 +105,7 @@ def run_web():
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
 
-# --- БОТ TELEGRAM ---
+# --- БОТ И ПЛАТЕЖИ ---
 bot = telebot.TeleBot(TOKEN)
 
 @bot.message_handler(commands=['start'])
@@ -114,6 +113,48 @@ def start(message):
     init_db()
     get_user(message.from_user.id)
     bot.send_message(message.chat.id, "🟢 Терминал подключен! Нажми на кнопку 'Играть' внизу.")
+
+# Эндпоинт, который вызывает Mini App, чтобы выставить счет
+@app.route('/api/buy_premium_case', methods=['POST'])
+def api_buy_premium_case():
+    data = request.json
+    user_id = data.get('user_id')
+    
+    try:
+        # Отправляем счет в чат пользователю
+        bot.send_invoice(
+            chat_id=user_id,
+            title="Премиум Взлом",
+            description="Гарантированный Эпический или Легендарный предмет",
+            invoice_payload="premium_case_payload", # Уникальный ID покупки
+            provider_token="", 
+            currency="XTR", # XTR - это код Telegram Stars
+            prices=[LabeledPrice(label="Премиум-кейс", amount=15)] # 15 Звезд
+        )
+        return jsonify({"success": True})
+    except Exception as e:
+        print(f"Ошибка счета: {e}")
+        return jsonify({"success": False, "message": "Ошибка сервера"})
+
+# Обработка кнопки "Оплатить"
+@bot.pre_checkout_query_handler(func=lambda query: True)
+def checkout(pre_checkout_query: PreCheckoutQuery):
+    bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
+
+# Обработка успешной оплаты
+@bot.message_handler(content_types=['successful_payment'])
+def got_payment(message):
+    user_id = message.from_user.id
+    balance, last_claim, base_income = get_user(user_id)
+    
+    # Начисляем 5000 кредитов за покупку (можете изменить)
+    new_balance = balance + 5000
+    update_balance_and_time(user_id, new_balance, last_claim)
+    
+    bot.send_message(
+        user_id, 
+        f"💎 Оплата прошла успешно!\nВы получили 5000 ₽ на баланс за покупку Премиум-взлома!"
+    )
 
 threading.Thread(target=run_web, daemon=True).start()
 
