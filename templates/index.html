@@ -37,7 +37,6 @@
         .item-name { font-size: 12px; color: #fff; margin-bottom: 5px; font-weight: bold; }
         .item-income { font-size: 12px; color: #00ff41; font-weight: bold; }
         
-        /* Новые редкости */
         .rarity-Обычный { border-color: #888; box-shadow: 0 0 5px #888; }
         .rarity-Редкий { border-color: #00bfff; box-shadow: 0 0 5px #00bfff; }
         .rarity-Эпический { border-color: #b026ff; box-shadow: 0 0 5px #b026ff; }
@@ -48,9 +47,8 @@
         .nav-btn { background: none; border: none; color: #888; font-size: 24px; cursor: pointer; }
         .nav-btn.active { color: #00ff41; text-shadow: 0 0 10px #00ff41; }
         
-        /* Стили для крафта */
-        .craft-box { background: #111; border: 1px solid #333; padding: 15px; border-radius: 10px; width: 100%; margin-bottom: 20px; }
-        .craft-title { color: #fff; margin-bottom: 10px; font-size: 14px; text-align: center; }
+        .craft-box { background: #111; border: 1px solid #333; padding: 15px; border-radius: 10px; width: 100%; margin-bottom: 15px; }
+        .craft-title { color: #fff; margin-bottom: 10px; font-size: 12px; text-align: center; }
     </style>
 </head>
 <body>
@@ -68,41 +66,19 @@
         <button class="btn btn-premium" id="premiumBtn">Премиум-деталь (15 ⭐️)</button>
     </div>
 
-    <!-- Вкладка 2: Арсенал (Инвентарь) -->
+    <!-- Вкладка 2: Арсенал -->
     <div id="tab-inventory" class="tab-content">
         <h2 style="margin-top: 20px; margin-bottom: 10px;">СТОЙКА СЕРВЕРА</h2>
         <div class="inventory-grid" id="inventoryGrid"></div>
     </div>
 
-    <!-- Вкладка 3: Мастерская (Крафт) -->
+    <!-- Вкладка 3: Мастерская -->
     <div id="tab-craft" class="tab-content">
         <h2 style="margin-top: 20px; margin-bottom: 10px;">МАСТЕРСКАЯ</h2>
-        <p style="font-size: 12px; color: #888; text-align: center; margin-bottom: 15px;">Соберите 3 одинаковые детали, чтобы попытаться повысить их редкость. При неудаче детали сгорают!</p>
+        <p style="font-size: 11px; color: #888; text-align: center; margin-bottom: 15px;">Соберите 3 одинаковые детали одного типа, чтобы попытаться повысить их редкость. При неудаче детали сгорают!</p>
         
-        <div class="craft-box">
-            <div class="craft-title">Улучшить Обычные -> Редкие (Шанс 60%)</div>
-            <button class="btn btn-craft" onclick="doCraft('Охлаждение', 'Обычный')">Охлаждение</button>
-            <button class="btn btn-craft" onclick="doCraft('Питание', 'Обычный')">Питание</button>
-            <button class="btn btn-craft" onclick="doCraft('Процессор', 'Обычный')">Процессор</button>
-            <button class="btn btn-craft" onclick="doCraft('Плата', 'Обычный')">Плата</button>
-        </div>
-
-        <div class="craft-box">
-            <div class="craft-title">Улучшить Редкие -> Эпические (Шанс 40%)</div>
-            <button class="btn btn-craft" onclick="doCraft('Охлаждение', 'Редкий')">Охлаждение</button>
-            <button class="btn btn-craft" onclick="doCraft('Видеокарта', 'Редкий')">Видеокарта</button>
-        </div>
-
-        <div class="craft-box">
-            <div class="craft-title">Улучшить Эпические -> Легендарные (Шанс 20%)</div>
-            <button class="btn btn-craft" onclick="doCraft('Процессор', 'Эпический')">Процессор</button>
-            <button class="btn btn-craft" onclick="doCraft('Видеокарта', 'Эпический')">Видеокарта</button>
-        </div>
-
-        <div class="craft-box">
-            <div class="craft-title">Улучшить Легендарные -> Мифические (Шанс 10%)</div>
-            <button class="btn btn-craft" onclick="doCraft('Процессор', 'Легендарный')">Процессор</button>
-            <button class="btn btn-craft" onclick="doCraft('Видеокарта', 'Легендарный')">Видеокарта</button>
+        <div id="craftList" style="width: 100%;">
+            <!-- Сюда будут загружаться доступные крафты -->
         </div>
     </div>
 
@@ -124,6 +100,7 @@
             document.getElementById('tab-' + tabName).classList.add('active');
             btnElement.classList.add('active');
             if(tabName === 'inventory') loadInventory();
+            if(tabName === 'craft') loadCraftable();
         }
 
         function updateUI(balance, income, upgradeCost) {
@@ -156,7 +133,37 @@
             });
         }
 
-        // Функция крафта
+        // Загрузка умной мастерской
+        function loadCraftable() {
+            fetch('/api/get_craftable', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+            .then(res => res.json()).then(data => {
+                const list = document.getElementById('craftList');
+                list.innerHTML = '';
+                
+                if (data.craftable.length === 0) {
+                    list.innerHTML = '<div style="text-align:center; color:#888;">У вас нет 3-х одинаковых деталей для крафта.</div>';
+                    return;
+                }
+
+                data.craftable.forEach(item => {
+                    let chance = 0;
+                    let nextRarity = "";
+                    if(item.rarity === "Обычный") { chance = 60; nextRarity = "Редкий"; }
+                    else if(item.rarity === "Редкий") { chance = 40; nextRarity = "Эпический"; }
+                    else if(item.rarity === "Эпический") { chance = 20; nextRarity = "Легендарный"; }
+                    else if(item.rarity === "Легендарный") { chance = 10; nextRarity = "Мифический"; }
+                    
+                    const box = document.createElement('div');
+                    box.className = 'craft-box';
+                    box.innerHTML = `
+                        <div class="craft-title">Улучшить ${item.rarity} ${item.type} -> ${nextRarity} (Шанс ${chance}%)</div>
+                        <button class="btn btn-craft" onclick="doCraft('${item.type}', '${item.rarity}')">КРАФТИТЬ (Есть: ${item.count})</button>
+                    `;
+                    list.appendChild(box);
+                });
+            });
+        }
+
         function doCraft(itemType, rarity) {
             fetch('/api/craft', { 
                 method: 'POST', 
@@ -167,11 +174,12 @@
                 if(data.success) {
                     Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                     Telegram.WebApp.showAlert(data.message);
-                    loadData(); // Обновляем доход, если крафт успешен
+                    loadData(); 
                 } else {
                     Telegram.WebApp.HapticFeedback.notificationOccurred('error');
                     Telegram.WebApp.showAlert(data.message);
                 }
+                loadCraftable(); // Обновляем список крафтов
             });
         }
 
