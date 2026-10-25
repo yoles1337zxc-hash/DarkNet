@@ -15,7 +15,6 @@ def init_db():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute('CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, balance INTEGER DEFAULT 0, last_claim INTEGER DEFAULT 0, base_income INTEGER DEFAULT 10)')
-    # Добавили колонку income в инвентарь
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS inventory (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,14 +41,18 @@ def get_user(user_id):
     conn.close()
     return row[0], row[1], row[2]
 
-def update_balance_and_time(user_id, new_balance, new_time):
+def update_user(user_id, balance=None, last_claim=None, base_income=None):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute("UPDATE users SET balance = ?, last_claim = ? WHERE user_id = ?", (new_balance, new_time, user_id))
+    if balance is not None:
+        cursor.execute("UPDATE users SET balance = ? WHERE user_id = ?", (balance, user_id))
+    if last_claim is not None:
+        cursor.execute("UPDATE users SET last_claim = ? WHERE user_id = ?", (last_claim, user_id))
+    if base_income is not None:
+        cursor.execute("UPDATE users SET base_income = ? WHERE user_id = ?", (base_income, user_id))
     conn.commit()
     conn.close()
 
-# Обновленная функция добавления (теперь принимает income)
 def add_item_to_inventory(user_id, item_name, rarity, income):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
@@ -57,7 +60,6 @@ def add_item_to_inventory(user_id, item_name, rarity, income):
     conn.commit()
     conn.close()
 
-# Новая функция: считает общий доход от всех предметов
 def get_total_inventory_income(user_id):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
@@ -87,20 +89,48 @@ def api_get_data():
     user_id = data.get('user_id')
     if not user_id: return jsonify({"error": "No user_id"}), 400
     init_db()
-    
     balance, last_claim, base_income = get_user(user_id)
-    # Считаем общий доход: базовый + от предметов
     inv_income = get_total_inventory_income(user_id)
     total_income = base_income + inv_income
     
-    return jsonify({"balance": balance, "income": total_income})
+    # Стоимость следующего апгрейда = текущий базовый доход * 10
+    upgrade_cost = base_income * 10
+    
+    return jsonify({"balance": balance, "income": total_income, "base_income": base_income, "upgrade_cost": upgrade_cost})
+
+@app.route('/api/upgrade', methods=['POST'])
+def api_upgrade():
+    data = request.json
+    user_id = data.get('user_id')
+    balance, last_claim, base_income = get_user(user_id)
+    
+    upgrade_cost = base_income * 10
+    
+    if balance < upgrade_cost:
+        return jsonify({"success": False, "message": f"Недостаточно средств! Нужно {upgrade_cost} ₽."})
+    
+    # Списываем деньги и повышаем базовый доход
+    new_balance = balance - upgrade_cost
+    new_base_income = base_income + 5
+    
+    update_user(user_id, balance=new_balance, base_income=new_base_income)
+    
+    inv_income = get_total_inventory_income(user_id)
+    total_income = new_base_income + inv_income
+    
+    return jsonify({
+        "success": True, 
+        "balance": new_balance, 
+        "total_income": total_income,
+        "new_base_income": new_base_income,
+        "next_upgrade_cost": new_base_income * 10
+    })
 
 @app.route('/api/claim', methods=['POST'])
 def api_claim():
     data = request.json
     user_id = data.get('user_id')
     balance, last_claim, base_income = get_user(user_id)
-    
     inv_income = get_total_inventory_income(user_id)
     total_income = base_income + inv_income
     
@@ -109,10 +139,12 @@ def api_claim():
     hours_passed = min(seconds_passed / 3600.0, 4.0)
     earned = int(total_income * hours_passed)
     
-    if earned < 1: return jsonify({"balance": balance, "earned": 0, "message": "Слишком рано!", "total_income": total_income})
+    if earned < 1: 
+        return jsonify({"balance": balance, "earned": 0, "message": "Слишком рано!", "total_income": total_income})
     
     new_balance = balance + earned
-    update_balance_and_time(user_id, new_balance, now)
+    update_user(user_id, balance=new_balance, last_claim=now)
+    
     return jsonify({"balance": new_balance, "earned": earned, "message": "Успех!", "total_income": total_income})
 
 @app.route('/api/case', methods=['POST'])
@@ -120,12 +152,13 @@ def api_case():
     data = request.json
     user_id = data.get('user_id')
     balance, last_claim, base_income = get_user(user_id)
-    if balance < 50: return jsonify({"success": False, "message": "Недостаточно средств!"})
+    
+    if balance < 50: 
+        return jsonify({"success": False, "message": "Недостаточно средств!"})
     
     new_balance = balance - 50
-    update_balance_and_time(user_id, new_balance, last_claim)
+    update_user(user_id, balance=new_balance)
     
-    # Теперь у предметов есть параметр "income"
     items = [
         {"name": "Скрипт 'Червь'", "rarity": "Обычный", "income": 5},
         {"name": "Троян-невидимка", "rarity": "Обычный", "income": 10},
@@ -134,10 +167,8 @@ def api_case():
         {"name": "Абсолютный Бэкдор", "rarity": "Легендарный", "income": 500}
     ]
     dropped_item = random.choice(items)
-    
     add_item_to_inventory(user_id, dropped_item["name"], dropped_item["rarity"], dropped_item["income"])
     
-    # Возвращаем обновленный общий доход
     inv_income = get_total_inventory_income(user_id)
     total_income = base_income + inv_income
     
@@ -182,8 +213,7 @@ def got_payment(message):
     user_id = message.from_user.id
     balance, last_claim, base_income = get_user(user_id)
     new_balance = balance + 5000
-    update_balance_and_time(user_id, new_balance, last_claim)
-    # Выдаем легендарку за донат (с доходом 500)
+    update_user(user_id, balance=new_balance)
     add_item_to_inventory(user_id, "Абсолютный Бэкдор", "Легендарный", 500)
     bot.send_message(user_id, f"💎 Оплата прошла! Вы получили 5000 ₽ и Легендарный предмет (+500 ₽/ч)!")
 
