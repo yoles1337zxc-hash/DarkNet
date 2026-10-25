@@ -28,6 +28,9 @@
         .btn-premium { border-color: #ffd700; color: #ffd700; box-shadow: 0 0 10px #ffd700; }
         .btn-premium:active { background: #ffd700; color: #0a0a0a; }
 
+        .btn-daily { border-color: #00ff00; color: #00ff00; box-shadow: 0 0 10px #00ff00; }
+        .btn-daily:active { background: #00ff00; color: #0a0a0a; }
+
         .btn-craft { border-color: #ff00ff; color: #ff00ff; box-shadow: 0 0 10px #ff00ff; font-size: 14px; padding: 10px; margin-bottom: 10px;}
         .btn-craft:active { background: #ff00ff; color: #0a0a0a; }
 
@@ -64,8 +67,7 @@
         <button class="btn btn-upgrade" id="upgradeBtn">Улучшить сервер: ... ₽</button>
         <button class="btn btn-case" id="caseBtn">Купить деталь (50 ₽)</button>
         <button class="btn btn-premium" id="premiumBtn">Премиум-деталь (15 ⭐️)</button>
-        <button class="btn" id="dailyBtn" style="border-color: #00ff00; color: #00ff00; box-shadow: 0 0 10px #00ff00;">Забрать ежедневный бонус</button>
-        <button class="btn" id="dailyBtn" style="border-color: #00ff00; color: #00ff00; box-shadow: 0 0 10px #00ff00;">Ежедневный бонус</button>
+        <button class="btn btn-daily" id="dailyBtn">Ежедневный бонус</button>
     </div>
 
     <!-- Вкладка 2: Арсенал -->
@@ -78,10 +80,7 @@
     <div id="tab-craft" class="tab-content">
         <h2 style="margin-top: 20px; margin-bottom: 10px;">МАСТЕРСКАЯ</h2>
         <p style="font-size: 11px; color: #888; text-align: center; margin-bottom: 15px;">Соберите 3 одинаковые детали одного типа, чтобы попытаться повысить их редкость. При неудаче детали сгорают!</p>
-        
-        <div id="craftList" style="width: 100%;">
-            <!-- Сюда будут загружаться доступные крафты -->
-        </div>
+        <div id="craftList" style="width: 100%;"></div>
     </div>
 
     <!-- Нижнее меню -->
@@ -135,21 +134,17 @@
             });
         }
 
-        // Загрузка умной мастерской
         function loadCraftable() {
             fetch('/api/get_craftable', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
             .then(res => res.json()).then(data => {
                 const list = document.getElementById('craftList');
                 list.innerHTML = '';
-                
                 if (data.craftable.length === 0) {
                     list.innerHTML = '<div style="text-align:center; color:#888;">У вас нет 3-х одинаковых деталей для крафта.</div>';
                     return;
                 }
-
                 data.craftable.forEach(item => {
-                    let chance = 0;
-                    let nextRarity = "";
+                    let chance = 0; let nextRarity = "";
                     if(item.rarity === "Обычный") { chance = 60; nextRarity = "Редкий"; }
                     else if(item.rarity === "Редкий") { chance = 40; nextRarity = "Эпический"; }
                     else if(item.rarity === "Эпический") { chance = 20; nextRarity = "Легендарный"; }
@@ -167,11 +162,7 @@
         }
 
         function doCraft(itemType, rarity) {
-            fetch('/api/craft', { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ user_id: userId, item_type: itemType, rarity: rarity }) 
-            })
+            fetch('/api/craft', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId, item_type: itemType, rarity: rarity }) })
             .then(res => res.json()).then(data => {
                 if(data.success) {
                     Telegram.WebApp.HapticFeedback.notificationOccurred('success');
@@ -181,7 +172,7 @@
                     Telegram.WebApp.HapticFeedback.notificationOccurred('error');
                     Telegram.WebApp.showAlert(data.message);
                 }
-                loadCraftable(); // Обновляем список крафтов
+                loadCraftable(); 
             });
         }
 
@@ -223,8 +214,9 @@
                 else { Telegram.WebApp.showAlert("Ошибка."); }
             });
         });
-    </script>// Кнопка Ежедневного Бонуса
-                document.getElementById('dailyBtn').addEventListener('click', () => {
+
+        // Новая кнопка Ежедневного Бонуса
+        document.getElementById('dailyBtn').addEventListener('click', () => {
             fetch('/api/daily', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
             .then(res => res.json()).then(data => {
                 if (data.success) {
@@ -240,5 +232,6 @@
                 }
             });
         });
+    </script>
 </body>
 </html>
