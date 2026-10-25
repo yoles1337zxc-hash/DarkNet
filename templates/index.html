@@ -6,18 +6,15 @@
     <title>NetRunner</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Базовые настройки и шрифты */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #050505; background-image: radial-gradient(circle at 50% 0%, #0a2a12 0%, #050505 70%); color: #fff; display: flex; flex-direction: column; align-items: center; padding: 20px 15px; min-height: 100vh; overflow-x: hidden; }
         
-        /* Эффект неонового текста */
         .neon-text { color: #00ff41; text-shadow: 0 0 10px rgba(0, 255, 65, 0.7), 0 0 20px rgba(0, 255, 65, 0.3); }
         
         .tab-content { display: none; width: 100%; max-width: 400px; flex-direction: column; align-items: center; }
         .tab-content.active { display: flex; animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Главная карточка (Баланс и Накопление) */
         .balance-card { background: linear-gradient(145deg, #121212, #0a0a0a); border: 1px solid #1a1a1a; border-radius: 16px; padding: 25px 20px; width: 100%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05); margin-bottom: 20px; position: relative; overflow: hidden; }
         .balance-card::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(0,255,65,0.05) 0%, transparent 60%); pointer-events: none; }
         
@@ -25,14 +22,12 @@
         .balance-amount { font-size: 42px; font-weight: 900; margin-bottom: 5px; }
         .income-text { color: #b026ff; font-size: 14px; font-weight: bold; text-shadow: 0 0 8px rgba(176, 38, 255, 0.5); margin-bottom: 15px; }
         
-        /* Полоса накопления */
         .progress-container { background: #000; border-radius: 10px; padding: 10px; border: 1px solid #222; margin-top: 15px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.8); }
         .progress-header { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; color: #aaa; }
         .progress-bar-bg { width: 100%; height: 12px; background: #1a1a1a; border-radius: 6px; overflow: hidden; position: relative; }
         .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #00ff41, #00bfff); border-radius: 6px; width: 0%; transition: width 0.5s ease-in-out; box-shadow: 0 0 10px #00ff41; }
         .progress-footer { font-size: 10px; color: #666; margin-top: 8px; text-align: center; }
 
-        /* Кнопки */
         .btn { width: 100%; padding: 16px; background: linear-gradient(145deg, #111, #0a0a0a); border: 1px solid #333; color: #fff; font-size: 15px; font-weight: bold; border-radius: 12px; cursor: pointer; margin-bottom: 10px; transition: all 0.2s; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); text-transform: uppercase; letter-spacing: 1px; }
         .btn:active { transform: scale(0.96); }
         
@@ -44,346 +39,12 @@
         .btn-luck { border-color: #ff8c00; color: #ff8c00; box-shadow: 0 0 10px rgba(255,140,0,0.2); }
         .btn-premium { border-color: #ffd700; color: #ffd700; box-shadow: 0 0 10px rgba(255,215,0,0.2); }
 
-        /* Сетка кейсов */
         .case-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-bottom: 15px; }
-        .btn-case { padding: 12px 5px; font-size: 12px; border-color: #b026ff; color: #b026ff; box-shadow: 0 0 10px rgba(176,38,255,0.2); }
+        .btn-case { padding: 12px 5px; font-size: 12px; border-color: #b026ff; color: #b026ff; box-shadow: 0 0 10px rgba(176,38,255,0.2); display: flex; flex-direction: column; align-items: center; line-height: 1.4; }
+        .btn-case span { font-size: 10px; color: #888; margin-top: 4px; text-transform: none; letter-spacing: 0; font-weight: normal; }
         .btn-case.basic { border-color: #00ff41; color: #00ff41; box-shadow: 0 0 10px rgba(0,255,65,0.2); }
         .btn-case.advanced { border-color: #00bfff; color: #00bfff; box-shadow: 0 0 10px rgba(0,191,255,0.2); }
         .btn-case.pro { border-color: #b026ff; color: #b026ff; box-shadow: 0 0 10px rgba(176,38,255,0.2); }
         .btn-case.mythic { border-color: #ff0000; color: #ff0000; box-shadow: 0 0 10px rgba(255,0,0,0.2); }
 
-        /* Инвентарь */
-        .inventory-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; margin-top: 10px; padding-bottom: 80px; }
-        .item-card { background: linear-gradient(145deg, #151515, #0a0a0a); border: 1px solid #222; padding: 15px 10px; border-radius: 12px; text-align: center; cursor: pointer; transition: 0.2s; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        .item-card:active { transform: scale(0.95); }
-        .item-icon { font-size: 36px; margin-bottom: 8px; }
-        .item-type { font-size: 10px; color: #888; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
-        .item-name { font-size: 12px; color: #fff; margin-bottom: 6px; font-weight: bold; line-height: 1.2; }
-        .item-income { font-size: 13px; color: #00ff41; font-weight: bold; text-shadow: 0 0 5px rgba(0,255,65,0.5); }
-        
-        /* Рамки редкостей */
-        .rarity-Обычный { border-color: #555; }
-        .rarity-Редкий { border-color: #00bfff; box-shadow: 0 0 10px rgba(0,191,255,0.2); }
-        .rarity-Эпический { border-color: #b026ff; box-shadow: 0 0 10px rgba(176,38,255,0.3); }
-        .rarity-Легендарный { border-color: #ffd700; box-shadow: 0 0 15px rgba(255,215,0,0.4); }
-        .rarity-Мифический { border-color: #ff0000; box-shadow: 0 0 20px rgba(255,0,0,0.5); }
-
-        /* Нижнее меню */
-        .nav-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(10,10,10,0.95); backdrop-filter: blur(10px); display: flex; justify-content: space-around; padding: 12px 0 20px 0; border-top: 1px solid #222; z-index: 100; }
-        .nav-btn { background: none; border: none; color: #555; font-size: 26px; cursor: pointer; transition: 0.2s; }
-        .nav-btn.active { color: #00ff41; text-shadow: 0 0 15px #00ff41; transform: translateY(-3px); }
-        
-        /* Мастерская */
-        .craft-box { background: linear-gradient(145deg, #151515, #0a0a0a); border: 1px solid #222; padding: 15px; border-radius: 12px; width: 100%; margin-bottom: 12px; }
-        .craft-title { color: #fff; margin-bottom: 12px; font-size: 13px; text-align: center; }
-        .btn-craft { border-color: #ff00ff; color: #ff00ff; background: transparent; font-size: 13px; padding: 12px; }
-        
-        /* Лидерборд */
-        .lb-row { display: flex; justify-content: space-between; align-items: center; background: #111; border: 1px solid #222; padding: 15px; border-radius: 12px; margin-bottom: 8px; }
-        .lb-row.me { border-color: #00ff41; box-shadow: 0 0 10px rgba(0,255,65,0.2); background: #0a1a0f; }
-    </style>
-</head>
-<body>
-    <!-- Вкладка 1: Главная -->
-    <div id="tab-main" class="tab-content active">
-        <div class="balance-card">
-            <div class="balance-title">БАЛАНС</div>
-            <div class="balance-amount neon-text" id="balance">0 ₽</div>
-            <div class="income-text" id="income">Доход: 0 ₽/ч</div>
-            
-            <!-- Полоса накопления -->
-            <div class="progress-container">
-                <div class="progress-header">
-                    <span>Накоплено:</span>
-                    <span class="neon-text" id="pendingMoney">0 ₽</span>
-                </div>
-                <div class="progress-bar-bg">
-                    <div class="progress-bar-fill" id="progressBar"></div>
-                </div>
-                <div class="progress-footer">Копится 4 часа, затем останавливается</div>
-            </div>
-        </div>
-        
-        <button class="btn btn-claim" id="claimBtn">Взломать и забрать</button>
-        <button class="btn btn-daily" id="dailyBtn">Ежедневный бонус</button>
-        <button class="btn btn-upgrade" id="upgradeBtn">Улучшить сервер</button>
-        <button class="btn btn-luck" id="luckBtn">Удача (Ур. 1)</button>
-        
-        <div class="case-grid">
-            <button class="btn btn-case basic" onclick="buyCase('basic')">Базовый<br>100 ₽</button>
-            <button class="btn btn-case advanced" onclick="buyCase('advanced')">Продвинутый<br>5 000 ₽</button>
-            <button class="btn btn-case pro" onclick="buyCase('pro')">Профи<br>25 000 ₽</button>
-            <button class="btn btn-case mythic" onclick="buyCase('mythic')">Мифический<br>100 000 ₽</button>
-        </div>
-        
-        <button class="btn btn-premium" id="premiumBtn">Премиум-деталь (15 ⭐️)</button>
-    </div>
-
-    <!-- Вкладка 2: Арсенал -->
-    <div id="tab-inventory" class="tab-content">
-        <h2 style="margin-top: 10px; margin-bottom: 5px; font-size: 20px;" class="neon-text">СТОЙКА СЕРВЕРА</h2>
-        <p style="font-size: 11px; color: #888; margin-bottom: 15px;">Нажми на деталь, чтобы продать</p>
-        <div class="inventory-grid" id="inventoryGrid"></div>
-    </div>
-
-    <!-- Вкладка 3: Мастерская -->
-    <div id="tab-craft" class="tab-content">
-        <h2 style="margin-top: 10px; margin-bottom: 10px; font-size: 20px;" class="neon-text">МАСТЕРСКАЯ</h2>
-        <p style="font-size: 11px; color: #888; text-align: center; margin-bottom: 15px; line-height: 1.5;">Соберите 3 одинаковые детали, чтобы повысить их редкость. При неудаче детали сгорают!</p>
-        <div id="craftList" style="width: 100%; padding-bottom: 80px;"></div>
-    </div>
-
-    <!-- Вкладка 4: Лидеры -->
-    <div id="tab-leaderboard" class="tab-content">
-        <h2 style="margin-top: 10px; margin-bottom: 20px; font-size: 20px; color: #ffd700; text-shadow: 0 0 10px #ffd700;">ТОП ХАКЕРОВ</h2>
-        <div id="leaderboardList" style="width: 100%; padding-bottom: 80px;"></div>
-    </div>
-
-    <!-- Вкладка 5: Друзья -->
-    <div id="tab-friends" class="tab-content">
-        <h2 style="margin-top: 10px; margin-bottom: 20px; font-size: 20px; color: #ffd700;">ЗОВИ ДРУЗЕЙ</h2>
-        <div class="balance-card" style="padding: 20px;">
-            <div style="font-size: 12px; color: #888; margin-bottom: 10px; text-transform: uppercase;">Приглашено друзей</div>
-            <div style="font-size: 36px; font-weight: bold; color: #ffd700;" id="refCount">0</div>
-        </div>
-        <p style="font-size: 12px; color: #aaa; text-align: center; margin-bottom: 20px; line-height: 1.6;">
-            Пригласи друга и получи <b style="color:#00ff41;">1000 ₽</b>.<br>Твой друг тоже получит <b style="color:#00ff41;">1000 ₽</b>!
-        </p>
-        <button class="btn" id="copyRefBtn" style="border-color: #ffd700; color: #ffd700;">Скопировать ссылку</button>
-    </div>
-
-    <!-- Нижнее меню -->
-    <div class="nav-bar">
-        <button class="nav-btn active" onclick="switchTab('main', this)">💻</button>
-        <button class="nav-btn" onclick="switchTab('inventory', this)">⚙️</button>
-        <button class="nav-btn" onclick="switchTab('craft', this)">🔧</button>
-        <button class="nav-btn" onclick="switchTab('leaderboard', this)">🏆</button>
-        <button class="nav-btn" onclick="switchTab('friends', this)">🎁</button>
-    </div>
-
-    <script>
-        Telegram.WebApp.ready();
-        Telegram.WebApp.expand(); 
-        
-        const userId = Telegram.WebApp.initDataUnsafe.user.id;
-        const tgUser = Telegram.WebApp.initDataUnsafe.user;
-        const userName = tgUser.username || tgUser.first_name || 'Хакер';
-
-        const icons = {
-            "Процессор": "🔲", "Видеокарта": "🎮", "Плата": "🧩", "Охлаждение": "❄️", "Питание": "🔋", "Корпус": "📦"
-        };
-
-        let gameData = {}; // Храним данные игры для таймера
-
-        function switchTab(tabName, btnElement) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById('tab-' + tabName).classList.add('active');
-            btnElement.classList.add('active');
-            if(tabName === 'inventory') loadInventory();
-            if(tabName === 'craft') loadCraftable();
-            if(tabName === 'leaderboard') loadLeaderboard();
-            if(tabName === 'friends') loadReferral();
-        }
-
-        function updateUI(data) {
-            gameData = data;
-            document.getElementById('balance').innerText = data.balance.toLocaleString('ru-RU') + " ₽";
-            document.getElementById('income').innerText = "Доход: " + data.income.toLocaleString('ru-RU') + " ₽/ч";
-            document.getElementById('upgradeBtn').innerText = `Улучшить сервер (${data.upgrade_cost.toLocaleString('ru-RU')} ₽)`;
-            document.getElementById('luckBtn').innerText = `Удача (Ур. ${data.luck_level}) - ${data.luck_cost.toLocaleString('ru-RU')} ₽`;
-            
-            // Обновляем полосу накопления
-            const progressPercent = (data.time_left / 4) * 100;
-            // Прогресс идет наоборот: когда копится, полоса заполняется. 4 часа - 0%, 0 часов - 100%
-            const fillPercent = 100 - progressPercent;
-            document.getElementById('progressBar').style.width = fillPercent + "%";
-            document.getElementById('pendingMoney').innerText = data.pending_money.toLocaleString('ru-RU') + " ₽";
-        }
-
-        function loadData() {
-            fetch('/api/get_data', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId, username: userName }) })
-            .then(res => res.json()).then(data => updateUI(data));
-        }
-        loadData();
-
-        // Таймер для визуального обновления полосы (без запросов к серверу)
-        setInterval(() => {
-            if(!gameData.income) return;
-            
-            // Добавляем 1 секунду к накоплению визуально
-            const incomePerSecond = gameData.income / 3600;
-            gameData.pending_money += incomePerSecond;
-            
-            // Обновляем полосу (визуально)
-            let timeLeft = gameData.time_left - (1 / 3600);
-            if (timeLeft < 0) timeLeft = 0;
-            gameData.time_left = timeLeft;
-            
-            const fillPercent = 100 - ((timeLeft / 4) * 100);
-            document.getElementById('progressBar').style.width = fillPercent + "%";
-            document.getElementById('pendingMoney').innerText = Math.floor(gameData.pending_money).toLocaleString('ru-RU') + " ₽";
-            
-        }, 1000);
-
-        function buyCase(caseType) {
-            fetch('/api/case', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId, case_type: caseType }) })
-            .then(res => res.json()).then(data => {
-                if (data.success) {
-                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    Telegram.WebApp.showPopup({ title: "📦 Деталь получена!", message: `Выпало: ${data.item.name}\nТип: ${data.item.type}\nРедкость: ${data.item.rarity}\nДоход: +${data.item.income} ₽/ч`, buttons: [{type: "ok"}] });
-                    loadData(); 
-                } else { Telegram.WebApp.showAlert(data.message); }
-            });
-        }
-
-        function loadInventory() {
-            fetch('/api/get_inventory', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
-            .then(res => res.json()).then(data => {
-                const grid = document.getElementById('inventoryGrid');
-                grid.innerHTML = ''; 
-                if (data.inventory.length === 0) { grid.innerHTML = '<div style="grid-column: span 2; text-align:center; color:#888; margin-top:20px;">Стойка пуста. Покупай детали!</div>'; return; }
-                data.inventory.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = `item-card rarity-${item.rarity}`;
-                    div.onclick = () => sellItem(item.id, item.name);
-                    const icon = icons[item.type] || "⚙️";
-                    div.innerHTML = `<div class="item-icon">${icon}</div><div class="item-type">${item.type}</div><div class="item-name">${item.name}</div><div class="item-income">+${item.income} ₽/ч</div>`;
-                    grid.appendChild(div);
-                });
-            });
-        }
-
-        function sellItem(itemId, itemName) {
-            Telegram.WebApp.showConfirm(`Вы уверены, что хотите продать "${itemName}"?`, (confirmed) => {
-                if (confirmed) {
-                    fetch('/api/sell', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId, item_id: itemId }) })
-                    .then(res => res.json()).then(data => {
-                        if (data.success) {
-                            Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                            Telegram.WebApp.showAlert(data.message);
-                            loadInventory(); loadData(); 
-                        } else { Telegram.WebApp.showAlert(data.message); }
-                    });
-                }
-            });
-        }
-
-        function loadCraftable() {
-            fetch('/api/get_craftable', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
-            .then(res => res.json()).then(data => {
-                const list = document.getElementById('craftList');
-                list.innerHTML = '';
-                if (data.craftable.length === 0) { list.innerHTML = '<div style="text-align:center; color:#888; margin-top:20px;">У вас нет 3-х одинаковых деталей для крафта.</div>'; return; }
-                data.craftable.forEach(item => {
-                    let chance = 0; let nextRarity = "";
-                    if(item.rarity === "Обычный") { chance = 60; nextRarity = "Редкий"; }
-                    else if(item.rarity === "Редкий") { chance = 40; nextRarity = "Эпический"; }
-                    else if(item.rarity === "Эпический") { chance = 20; nextRarity = "Легендарный"; }
-                    else if(item.rarity === "Легендарный") { chance = 10; nextRarity = "Мифический"; }
-                    const box = document.createElement('div');
-                    box.className = 'craft-box';
-                    box.innerHTML = `<div class="craft-title">Улучшить ${item.rarity} ${item.type} -> ${nextRarity}<br><span style="color:#aaa; font-size:11px;">Шанс успеха: ${chance}%</span></div><button class="btn btn-craft" onclick="doCraft('${item.type}', '${item.rarity}')">КРАФТИТЬ (Есть: ${item.count})</button>`;
-                    list.appendChild(box);
-                });
-            });
-        }
-
-        function doCraft(itemType, rarity) {
-            fetch('/api/craft', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId, item_type: itemType, rarity: rarity }) })
-            .then(res => res.json()).then(data => {
-                if(data.success) {
-                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    Telegram.WebApp.showAlert(data.message);
-                    loadData(); 
-                } else {
-                    Telegram.WebApp.HapticFeedback.notificationOccurred('error');
-                    Telegram.WebApp.showAlert(data.message);
-                }
-                loadCraftable(); 
-            });
-        }
-
-        function loadLeaderboard() {
-            fetch('/api/leaderboard', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
-            .then(res => res.json()).then(data => {
-                const list = document.getElementById('leaderboardList');
-                list.innerHTML = '';
-                if (data.leaderboard.length === 0) { list.innerHTML = '<div style="text-align:center; color:#888;">Пока нет игроков.</div>'; return; }
-                data.leaderboard.forEach((player, index) => {
-                    const isMe = player.id === userId;
-                    const div = document.createElement('div');
-                    div.className = 'lb-row' + (isMe ? ' me' : '');
-                    let placeColor = "#888";
-                    if (index === 0) placeColor = "#ffd700"; if (index === 1) placeColor = "#c0c0c0"; if (index === 2) placeColor = "#cd7f32";
-                    div.innerHTML = `<div style="font-size: 18px; font-weight: bold; color: ${placeColor}; width: 40px;">#${index + 1}</div><div style="font-size: 14px; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 10px;">${player.name}</div><div style="font-size: 16px; font-weight: bold; color: #00ff41;">${player.balance.toLocaleString('ru-RU')} ₽</div>`;
-                    list.appendChild(div);
-                });
-            });
-        }
-
-        function loadReferral() {
-            fetch('/api/referral', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
-            .then(res => res.json()).then(data => {
-                document.getElementById('refCount').innerText = data.count;
-                document.getElementById('copyRefBtn').onclick = () => {
-                    navigator.clipboard.writeText(data.link).then(() => {
-                        Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                        Telegram.WebApp.showAlert("Ссылка скопирована! Отправь её друзьям.");
-                    });
-                };
-            });
-        }
-
-        document.getElementById('claimBtn').addEventListener('click', () => {
-            fetch('/api/claim', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
-            .then(res => res.json()).then(data => {
-                if (data.earned > 0) { Telegram.WebApp.HapticFeedback.notificationOccurred('success'); Telegram.WebApp.showAlert(`Вы забрали ${data.earned.toLocaleString('ru-RU')} ₽!`); } 
-                else { Telegram.WebApp.showAlert("Сеть еще не накопила данные. Подожди!"); }
-                loadData();
-            });
-        });
-
-        document.getElementById('upgradeBtn').addEventListener('click', () => {
-            fetch('/api/upgrade', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
-            .then(res => res.json()).then(data => {
-                if (data.success) {
-                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    Telegram.WebApp.showAlert(`Сервер улучшен! Базовый доход повышен.`);
-                    loadData();
-                } else { Telegram.WebApp.showAlert(data.message); }
-            });
-        });
-
-        document.getElementById('luckBtn').addEventListener('click', () => {
-            fetch('/api/buy_luck', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
-            .then(res => res.json()).then(data => {
-                if (data.success) {
-                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    Telegram.WebApp.showAlert(`Удача улучшена до уровня ${data.new_luck}!`);
-                    loadData();
-                } else { Telegram.WebApp.showAlert(data.message); }
-            });
-        });
-
-        document.getElementById('premiumBtn').addEventListener('click', () => {
-            fetch('/api/buy_premium_case', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
-            .then(res => res.json()).then(data => {
-                if (data.success) { Telegram.WebApp.showAlert("Счет выставлен! Проверьте чат с ботом."); Telegram.WebApp.close(); } 
-                else { Telegram.WebApp.showAlert("Ошибка."); }
-            });
-        });
-
-        document.getElementById('dailyBtn').addEventListener('click', () => {
-            fetch('/api/daily', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
-            .then(res => res.json()).then(data => {
-                if (data.success) {
-                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    Telegram.WebApp.showPopup({ title: `🔥 Стрик: ${data.streak} дней!`, message: `${data.message}\n${data.bonus_case ? '🎁 Вам также выдан бонусный кейс!' : ''}`, buttons: [{type: "ok"}] });
-                    loadData();
-                } else { Telegram.WebApp.showAlert(data.message); }
-            });
-        });
-    </script>
-</body>
-</html>
+        .inventory-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; margin
