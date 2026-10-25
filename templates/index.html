@@ -223,5 +223,22 @@
             });
         });
     </script>
+            // Кнопка Ежедневного Бонуса
+        document.getElementById('dailyBtn').addEventListener('click', () => {
+            fetch('/api/daily', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+            .then(res => res.json()).then(data => {
+                if (data.success) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    Telegram.WebApp.showPopup({
+                        title: `🔥 Стрик: ${data.streak} дней!`,
+                        message: `${data.message}\n${data.bonus_case ? '🎁 Вам также выдан бонусный кейс!' : ''}`,
+                        buttons: [{type: "ok"}]
+                    });
+                    loadData();
+                } else {
+                    Telegram.WebApp.showAlert(data.message);
+                }
+            });
+        });
 </body>
 </html>
