@@ -65,6 +65,7 @@
         <button class="btn btn-case" id="caseBtn">Купить деталь (50 ₽)</button>
         <button class="btn btn-premium" id="premiumBtn">Премиум-деталь (15 ⭐️)</button>
         <button class="btn" id="dailyBtn" style="border-color: #00ff00; color: #00ff00; box-shadow: 0 0 10px #00ff00;">Забрать ежедневный бонус</button>
+        <button class="btn" id="dailyBtn" style="border-color: #00ff00; color: #00ff00; box-shadow: 0 0 10px #00ff00;">Ежедневный бонус</button>
     </div>
 
     <!-- Вкладка 2: Арсенал -->
@@ -222,9 +223,8 @@
                 else { Telegram.WebApp.showAlert("Ошибка."); }
             });
         });
-    </script>
-            // Кнопка Ежедневного Бонуса
-        document.getElementById('dailyBtn').addEventListener('click', () => {
+    </script>// Кнопка Ежедневного Бонуса
+                document.getElementById('dailyBtn').addEventListener('click', () => {
             fetch('/api/daily', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
             .then(res => res.json()).then(data => {
                 if (data.success) {
