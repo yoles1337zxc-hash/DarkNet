@@ -43,16 +43,17 @@ def init_db():
 def get_user(user_id):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute("SELECT balance, last_claim, base_income FROM users WHERE user_id = ?", (user_id,))
+    # Теперь мы запрашиваем 6 колонок
+    cursor.execute("SELECT balance, last_claim, base_income, last_daily, daily_streak FROM users WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
     if not row:
         now = int(time.time())
         cursor.execute("INSERT INTO users (user_id, last_claim) VALUES (?, ?)", (user_id, now))
         conn.commit()
         conn.close()
-        return 0, now, 10
+        return 0, now, 10, 0, 0
     conn.close()
-    return row[0], row[1], row[2]
+    return row[0], row[1], row[2], row[3], row[4]
 
 def update_user(user_id, balance=None, last_claim=None, base_income=None):
     conn = sqlite3.connect(DB_FILE)
@@ -189,6 +190,44 @@ def api_upgrade():
     return jsonify({"success": True, "balance": new_balance, "total_income": new_base_income + get_total_inventory_income(user_id), "next_upgrade_cost": new_base_income * 10})
 
 @app.route('/api/claim', methods=['POST'])
+@app.route('/api/daily', methods=['POST'])
+def api_daily():
+    data = request.json
+    user_id = data.get('user_id')
+    balance, last_claim, base_income, last_daily, streak = get_user(user_id)
+    
+    now = int(time.time())
+    # Проверяем, прошло ли 24 часа с последнего бонуса
+    if now - last_daily < 86400: # 86400 секунд в сутках
+        hours_left = int((86400 - (now - last_daily)) / 3600)
+        return jsonify({"success": False, "message": f"Бонус будет доступен через {hours_left} ч."})
+        
+    # Проверяем, не пропустил ли игрок день (если прошло больше 48 часов - стрик сгорает)
+    if now - last_daily > 172800: # 48 часов
+        streak = 0
+        
+    streak += 1
+    
+    # Награда зависит от стрика (чем больше дней, тем больше денег)
+    reward = 100 * streak 
+    # Бонусный кейс на 3-й и 7-й день
+    bonus_case = streak % 3 == 0 or streak == 7
+    
+    new_balance = balance + reward
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET balance = ?, last_daily = ?, daily_streak = ? WHERE user_id = ?", (new_balance, now, streak, user_id))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        "success": True, 
+        "balance": new_balance, 
+        "streak": streak, 
+        "reward": reward, 
+        "bonus_case": bonus_case,
+        "message": f"День {streak}! Вы получили {reward} ₽."
+    })
 def api_claim():
     data = request.json
     user_id = data.get('user_id')
