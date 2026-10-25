@@ -19,7 +19,6 @@ def claim(message): bot.send_message(message.chat.id, "💸 Успешный в�
 @bot.message_handler(commands=['case'])
 
 def case(message): bot.send_message(message.chat.id, "📦 Архив вскрыт! Выпал: Скрипт 'Червь'.")
-
 threading.Thread(target=run_web, daemon=True).start()
 
 print("Бот запущен...")
