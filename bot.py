@@ -1,8 +1,7 @@
 import os
 import threading
 import telebot
-from flask
-import Flask
+from flask import Flask
 
 TOKEN = os.environ.get("8986372455:AAFVgPDz3Vcq8RcZ3PBf3hfpNA41eyVXUL8")
 
