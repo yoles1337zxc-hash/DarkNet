@@ -6,7 +6,9 @@ from flask import Flask
 TOKEN = os.environ.get("BOT_TOKEN")
 
 app = Flask(name)
-@app.route('/') def health(): return "Bot is running"
+@app.route('/')
+
+def health(): return "Bot is running"
 
 def run_web(): port = int(os.environ.get("PORT", 10000)) app.run(host="0.0.0.0", port=port)
 bot = telebot.TeleBot(TOKEN)
