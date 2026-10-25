@@ -28,21 +28,29 @@
         .btn-premium { border-color: #ffd700; color: #ffd700; box-shadow: 0 0 10px #ffd700; }
         .btn-premium:active { background: #ffd700; color: #0a0a0a; }
 
-        /* Стили инвентаря */
+        .btn-craft { border-color: #ff00ff; color: #ff00ff; box-shadow: 0 0 10px #ff00ff; font-size: 14px; padding: 10px; margin-bottom: 10px;}
+        .btn-craft:active { background: #ff00ff; color: #0a0a0a; }
+
         .inventory-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-top: 10px; padding-bottom: 80px; }
-        .item-card { background: #111; border: 1px solid #333; padding: 10px; border-radius: 8px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; }
+        .item-card { background: #111; border: 1px solid #333; padding: 10px; border-radius: 8px; text-align: center; }
         .item-type { font-size: 10px; color: #888; text-transform: uppercase; margin-bottom: 5px; }
         .item-name { font-size: 12px; color: #fff; margin-bottom: 5px; font-weight: bold; }
         .item-income { font-size: 12px; color: #00ff41; font-weight: bold; }
         
+        /* Новые редкости */
         .rarity-Обычный { border-color: #888; box-shadow: 0 0 5px #888; }
         .rarity-Редкий { border-color: #00bfff; box-shadow: 0 0 5px #00bfff; }
         .rarity-Эпический { border-color: #b026ff; box-shadow: 0 0 5px #b026ff; }
         .rarity-Легендарный { border-color: #ffd700; box-shadow: 0 0 10px #ffd700; }
+        .rarity-Мифический { border-color: #ff0000; box-shadow: 0 0 15px #ff0000; }
 
         .nav-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: #111; display: flex; justify-content: space-around; padding: 15px 0; border-top: 1px solid #333; z-index: 100; }
         .nav-btn { background: none; border: none; color: #888; font-size: 24px; cursor: pointer; }
         .nav-btn.active { color: #00ff41; text-shadow: 0 0 10px #00ff41; }
+        
+        /* Стили для крафта */
+        .craft-box { background: #111; border: 1px solid #333; padding: 15px; border-radius: 10px; width: 100%; margin-bottom: 20px; }
+        .craft-title { color: #fff; margin-bottom: 10px; font-size: 14px; text-align: center; }
     </style>
 </head>
 <body>
@@ -66,10 +74,43 @@
         <div class="inventory-grid" id="inventoryGrid"></div>
     </div>
 
+    <!-- Вкладка 3: Мастерская (Крафт) -->
+    <div id="tab-craft" class="tab-content">
+        <h2 style="margin-top: 20px; margin-bottom: 10px;">МАСТЕРСКАЯ</h2>
+        <p style="font-size: 12px; color: #888; text-align: center; margin-bottom: 15px;">Соберите 3 одинаковые детали, чтобы попытаться повысить их редкость. При неудаче детали сгорают!</p>
+        
+        <div class="craft-box">
+            <div class="craft-title">Улучшить Обычные -> Редкие (Шанс 60%)</div>
+            <button class="btn btn-craft" onclick="doCraft('Охлаждение', 'Обычный')">Охлаждение</button>
+            <button class="btn btn-craft" onclick="doCraft('Питание', 'Обычный')">Питание</button>
+            <button class="btn btn-craft" onclick="doCraft('Процессор', 'Обычный')">Процессор</button>
+            <button class="btn btn-craft" onclick="doCraft('Плата', 'Обычный')">Плата</button>
+        </div>
+
+        <div class="craft-box">
+            <div class="craft-title">Улучшить Редкие -> Эпические (Шанс 40%)</div>
+            <button class="btn btn-craft" onclick="doCraft('Охлаждение', 'Редкий')">Охлаждение</button>
+            <button class="btn btn-craft" onclick="doCraft('Видеокарта', 'Редкий')">Видеокарта</button>
+        </div>
+
+        <div class="craft-box">
+            <div class="craft-title">Улучшить Эпические -> Легендарные (Шанс 20%)</div>
+            <button class="btn btn-craft" onclick="doCraft('Процессор', 'Эпический')">Процессор</button>
+            <button class="btn btn-craft" onclick="doCraft('Видеокарта', 'Эпический')">Видеокарта</button>
+        </div>
+
+        <div class="craft-box">
+            <div class="craft-title">Улучшить Легендарные -> Мифические (Шанс 10%)</div>
+            <button class="btn btn-craft" onclick="doCraft('Процессор', 'Легендарный')">Процессор</button>
+            <button class="btn btn-craft" onclick="doCraft('Видеокарта', 'Легендарный')">Видеокарта</button>
+        </div>
+    </div>
+
     <!-- Нижнее меню -->
     <div class="nav-bar">
         <button class="nav-btn active" onclick="switchTab('main', this)">💻</button>
         <button class="nav-btn" onclick="switchTab('inventory', this)">⚙️</button>
+        <button class="nav-btn" onclick="switchTab('craft', this)">🔧</button>
     </div>
 
     <script>
@@ -109,13 +150,28 @@
                 data.inventory.forEach(item => {
                     const div = document.createElement('div');
                     div.className = `item-card rarity-${item.rarity}`;
-                    div.innerHTML = `
-                        <div class="item-type">${item.type}</div>
-                        <div class="item-name">${item.name}</div>
-                        <div class="item-income">+${item.income} ₽/ч</div>
-                    `;
+                    div.innerHTML = `<div class="item-type">${item.type}</div><div class="item-name">${item.name}</div><div class="item-income">+${item.income} ₽/ч</div>`;
                     grid.appendChild(div);
                 });
+            });
+        }
+
+        // Функция крафта
+        function doCraft(itemType, rarity) {
+            fetch('/api/craft', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ user_id: userId, item_type: itemType, rarity: rarity }) 
+            })
+            .then(res => res.json()).then(data => {
+                if(data.success) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    Telegram.WebApp.showAlert(data.message);
+                    loadData(); // Обновляем доход, если крафт успешен
+                } else {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+                    Telegram.WebApp.showAlert(data.message);
+                }
             });
         }
 
@@ -135,9 +191,7 @@
                     Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                     Telegram.WebApp.showAlert(`Сервер улучшен! Базовый доход повышен.`);
                     updateUI(data.balance, data.total_income, data.next_upgrade_cost);
-                } else {
-                    Telegram.WebApp.showAlert(data.message);
-                }
+                } else { Telegram.WebApp.showAlert(data.message); }
             });
         });
 
