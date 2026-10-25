@@ -87,6 +87,23 @@
                 }
             });
         });
-    </script>
+    </script>         // Кнопка Премиум-кейса (Звезды)
+        document.getElementById('premiumBtn').addEventListener('click', () => {
+            // Отправляем запрос на сервер, чтобы он выставил счет
+            fetch('/api/buy_premium_case', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    Telegram.WebApp.showAlert("Счет выставлен! Проверьте чат с ботом для оплаты.");
+                    Telegram.WebApp.close(); // Закрываем Mini App, чтобы игрок увидел счет в чате
+                } else {
+                    Telegram.WebApp.showAlert("Ошибка при создании счета.");
+                }
+            });
+        });
 </body>
 </html>
