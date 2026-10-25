@@ -57,6 +57,38 @@ def health():
 def api_get_data():
     data = request.json
     user_id = data.get('user_id')
+    @app.route('/api/case', methods=['POST'])
+def api_case():
+    data = request.json
+    user_id = data.get('user_id')
+    
+    balance, last_claim, base_income = get_user(user_id)
+    
+    # Проверяем, хватает ли денег
+    if balance < 50:
+        return jsonify({"success": False, "message": "Недостаточно средств! Нужно 50 ₽."})
+        
+    # Списываем 50 монет
+    new_balance = balance - 50
+    update_balance_and_time(user_id, new_balance, last_claim)
+    
+    # Выдаем случайный предмет
+    items = [
+        {"name": "Скрипт 'Червь'", "rarity": "Обычный"},
+        {"name": "Троян-невидимка", "rarity": "Обычный"},
+        {"name": "Бот-парсер", "rarity": "Редкий"},
+        {"name": "Нейросеть 'Оракул'", "rarity": "Эпический"},
+        {"name": "Абсолютный Бэкдор", "rarity": "Легендарный"}
+    ]
+    
+    dropped_item = random.choice(items)
+    
+    return jsonify({
+        "success": True, 
+        "item": dropped_item, 
+        "balance": new_balance
+    })
+
     
     if not user_id:
         return jsonify({"error": "No user_id"}), 400
