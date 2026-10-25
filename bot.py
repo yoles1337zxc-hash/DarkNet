@@ -51,9 +51,11 @@ def update_balance_and_time(user_id, new_balance, new_time):
 # --- ВЕБ-СЕРВЕР ДЛЯ RENDER ---
 app = Flask(__name__)
 
+from flask import render_template
+
 @app.route('/')
 def health():
-    return "Bot is running"
+    return render_template('index.html')
 
 def run_web():
     port = int(os.environ.get("PORT", 10000))
