@@ -159,7 +159,7 @@
             filter: brightness(1.5);
         }
 
-        /* Рамки */
+        /* Рамки редкостей */
         .item-card.common { border-color: #555; }
         .item-card.rare { border-color: #00bfff; box-shadow: inset 0 0 10px rgba(0, 191, 255, 0.1); }
         .item-card.epic { border-color: #b026ff; box-shadow: inset 0 0 10px rgba(176, 38, 255, 0.1); }
@@ -186,7 +186,7 @@
             font-weight: bold;
         }
 
-        /* --- Всплывающие уведомления --- */
+        /* --- Всплывающие уведомления (Тосты) --- */
         .toast-container {
             position: fixed;
             bottom: 20px;
@@ -266,6 +266,7 @@
         // --- ДАННЫЕ ---
         let balance = 1500;
         
+        // Временный инвентарь для проверки отображения
         let inventory = [
             { id: 1, name: "Скрипт 'Червь'", type: "Скрипт", rarity: "common", income: 50 },
             { id: 2, name: "Бот-парсер", type: "Бот", rarity: "rare", income: 150 },
@@ -324,6 +325,7 @@
                     <div class="item-income">+ ${item.income} ₽/ч</div>
                 `;
                 
+                // Клик по карточке для показа деталей
                 card.addEventListener('click', () => {
                     const rarityRu = { common: "Обычный", rare: "Редкий", epic: "Эпический", legendary: "Легендарный" };
                     showToast(`${item.name} | ${rarityRu[item.rarity]}`, item.rarity);
@@ -348,14 +350,16 @@
             updateUI();
         });
 
-        // --- КЛИК ПО КНОПКЕ ---
+        // --- КЛИК ПО КНОПКЕ "ЗАБРАТЬ" ---
         document.getElementById('claimBtn').addEventListener('click', () => {
+            // Пока для теста - рандомный доход
             const earned = Math.floor(Math.random() * 400) + 100; 
             balance += earned;
             updateUI();
             showToast(`💸 Взлом успешен! + ${earned} ₽`);
         });
 
+        // Запуск игры при загрузке
         updateUI();
 
     </script>
