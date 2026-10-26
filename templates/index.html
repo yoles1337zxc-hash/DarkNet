@@ -58,11 +58,11 @@
 
         /* Инвентарь */
         .inventory-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; margin-top: 10px; padding-bottom: 80px; }
-        .item-card { background: linear-gradient(145deg, #151515, #0a0a0a); border: 1px solid #222; padding: 12px 8px; border-radius: 12px; text-align: center; cursor: pointer; transition: 0.2s; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; min-height: 120px;}
+        .item-card { background: linear-gradient(145deg, #151515, #0a0a0a); border: 1px solid #222; padding: 12px 8px; border-radius: 12px; text-align: center; cursor: pointer; transition: 0.2s; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; align-items: center; min-height: 110px;}
         .item-card:active { transform: scale(0.95); }
         .item-icon { font-size: 32px; margin-bottom: 8px; }
         .item-type { font-size: 9px; color: #888; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
-        .item-name { font-size: 11px; color: #fff; margin-bottom: 8px; font-weight: bold; line-height: 1.2; }
+        .item-name { font-size: 11px; color: #fff; margin-bottom: 8px; font-weight: bold; line-height: 1.2; text-align: center; }
         .item-income { font-size: 13px; color: #00ff41; font-weight: bold; text-shadow: 0 0 5px rgba(0,255,65,0.5); }
         
         /* Рамки редкостей */
@@ -213,7 +213,7 @@
         }
         loadData();
 
-        // Таймер обновления накоплений на экране
+        // Таймер обновления накоплений
         setInterval(() => {
             if(!gameData.income) return;
             const incomePerSecond = gameData.income / 3600;
@@ -239,7 +239,6 @@
             });
         }
 
-        // --- ЛОГИКА СОРТИРОВКИ ИНВЕНТАРЯ ---
         let currentSort = 'rarity';
         let currentInventory = [];
 
