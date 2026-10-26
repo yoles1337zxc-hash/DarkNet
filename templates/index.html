@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NetRunner Terminal</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
@@ -12,6 +12,7 @@
             padding: 0;
             box-sizing: border-box;
             font-family: 'Courier New', Courier, monospace;
+            -webkit-tap-highlight-color: transparent; /* Убирает синюю рамку при клике на телефоне */
         }
 
         body {
@@ -19,18 +20,27 @@
             color: #00ff41;
             min-height: 100vh;
             display: flex;
+            justify-content: center; /* Центрируем контент по горизонтали */
+            padding: 15px;
+            padding-bottom: 80px;
+            overflow-x: hidden;
+        }
+
+        /* Контейнер, имитирующий мобильный экран, даже если открыт на ПК */
+        .app-container {
+            width: 100%;
+            max-width: 380px; /* Ширина под телефон */
+            display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 20px;
-            padding-bottom: 100px; /* Чтобы уведомления не перекрывали контент */
         }
 
         /* --- Шапка --- */
         .header {
             width: 100%;
-            max-width: 400px;
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            margin-top: 10px;
         }
 
         .title {
@@ -38,37 +48,38 @@
             color: #888;
             letter-spacing: 2px;
             text-transform: uppercase;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
         }
 
         .balance {
-            font-size: 44px;
+            font-size: 46px;
             font-weight: bold;
             text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41;
             margin-bottom: 5px;
+            line-height: 1;
         }
 
         .income {
-            font-size: 16px;
+            font-size: 15px;
             color: #b026ff;
             text-shadow: 0 0 5px #b026ff;
+            font-weight: bold;
         }
 
-        /* --- Главная кнопка --- */
+        /* --- Кнопка "Забрать" --- */
         .main-btn {
             width: 100%;
-            max-width: 400px;
-            padding: 15px;
+            padding: 18px;
             background: transparent;
             border: 2px solid #00ff41;
             color: #00ff41;
             font-size: 18px;
             font-weight: bold;
             text-transform: uppercase;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
-            box-shadow: 0 0 10px #00ff41, inset 0 0 10px #00ff41;
-            transition: all 0.2s;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.4), inset 0 0 15px rgba(0, 255, 65, 0.2);
+            transition: all 0.1s;
             margin-bottom: 30px;
         }
 
@@ -78,10 +89,9 @@
             box-shadow: 0 0 30px #00ff41;
         }
 
-        /* --- Инвентарь --- */
+        /* --- Секция инвентаря --- */
         .inventory-section {
             width: 100%;
-            max-width: 400px;
         }
 
         .section-header {
@@ -94,15 +104,16 @@
         }
 
         .section-title {
-            font-size: 16px;
+            font-size: 14px;
             color: #888;
             text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         /* Кнопки сортировки */
         .sort-controls {
             display: flex;
-            gap: 8px;
+            gap: 6px;
         }
 
         .sort-btn {
@@ -110,7 +121,7 @@
             border: 1px solid #333;
             color: #888;
             font-size: 10px;
-            padding: 6px 10px;
+            padding: 6px 8px;
             cursor: pointer;
             border-radius: 4px;
             font-family: inherit;
@@ -124,46 +135,49 @@
             box-shadow: 0 0 5px #00ff41;
         }
 
-        /* Сетка предметов */
+        /* Сетка карточек */
         .inventory-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 1fr 1fr; /* Строго 2 колонки */
             gap: 10px;
+            width: 100%;
         }
 
-        /* Карточка */
         .item-card {
             background: #111;
             border: 1px solid #333;
-            padding: 12px;
-            border-radius: 6px;
-            text-align: left;
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 85px;
             cursor: pointer;
-            transition: transform 0.1s;
-        }
-        
-        .item-card:active {
-            transform: scale(0.97);
         }
 
-        /* Рамки редкостей */
+        .item-card:active {
+            filter: brightness(1.5);
+        }
+
+        /* Рамки */
         .item-card.common { border-color: #555; }
-        .item-card.rare { border-color: #00bfff; box-shadow: inset 0 0 10px rgba(0, 191, 255, 0.2); }
-        .item-card.epic { border-color: #b026ff; box-shadow: inset 0 0 10px rgba(176, 38, 255, 0.2); }
-        .item-card.legendary { border-color: #ffd700; box-shadow: inset 0 0 15px rgba(255, 215, 0, 0.3); }
+        .item-card.rare { border-color: #00bfff; box-shadow: inset 0 0 10px rgba(0, 191, 255, 0.1); }
+        .item-card.epic { border-color: #b026ff; box-shadow: inset 0 0 10px rgba(176, 38, 255, 0.1); }
+        .item-card.legendary { border-color: #ffd700; box-shadow: inset 0 0 15px rgba(255, 215, 0, 0.15); }
 
         .item-type {
             font-size: 9px;
-            color: #555;
+            color: #666;
             text-transform: uppercase;
             margin-bottom: 4px;
         }
 
         .item-name {
-            font-size: 13px;
-            margin-bottom: 8px;
+            font-size: 12px;
             color: #fff;
             font-weight: bold;
+            margin-bottom: 8px;
+            line-height: 1.2;
         }
 
         .item-income {
@@ -172,7 +186,7 @@
             font-weight: bold;
         }
 
-        /* --- Всплывающие окна (Тосты) --- */
+        /* --- Всплывающие уведомления --- */
         .toast-container {
             position: fixed;
             bottom: 20px;
@@ -184,28 +198,27 @@
             z-index: 1000;
             width: 90%;
             max-width: 350px;
-            pointer-events: none; /* Чтобы не блокировали клики */
+            pointer-events: none;
         }
 
         .toast {
             background: #111;
-            border: 1px solid #00ff41;
+            border: 2px solid #00ff41;
             color: #00ff41;
-            padding: 15px;
+            padding: 12px 15px;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 13px;
             text-align: center;
-            box-shadow: 0 0 15px rgba(0, 255, 65, 0.4);
+            font-weight: bold;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
             animation: slideUp 0.3s ease-out forwards;
             opacity: 0;
             transform: translateY(20px);
         }
 
-        /* Цвета уведомлений */
-        .toast.rare { border-color: #00bfff; color: #00bfff; box-shadow: 0 0 15px rgba(0, 191, 255, 0.4); }
-        .toast.epic { border-color: #b026ff; color: #b026ff; box-shadow: 0 0 15px rgba(176, 38, 255, 0.4); }
-        .toast.legendary { border-color: #ffd700; color: #ffd700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.4); }
-        .toast.error { border-color: #ff3333; color: #ff3333; box-shadow: 0 0 15px rgba(255, 51, 51, 0.4); }
+        .toast.rare { border-color: #00bfff; color: #00bfff; }
+        .toast.epic { border-color: #b026ff; color: #b026ff; }
+        .toast.legendary { border-color: #ffd700; color: #ffd700; }
 
         @keyframes slideUp {
             to { opacity: 1; transform: translateY(0); }
@@ -222,26 +235,28 @@
 </head>
 <body>
 
-    <!-- Шапка -->
-    <div class="header">
-        <div class="title">NETRUNNER TERMINAL</div>
-        <div class="balance" id="balanceDisplay">0 ₽</div>
-        <div class="income" id="incomeDisplay">+ 0 ₽/ч</div>
-    </div>
-
-    <!-- Главная кнопка -->
-    <button class="main-btn" id="claimBtn">Взломать и забрать</button>
-
-    <!-- Инвентарь -->
-    <div class="inventory-section">
-        <div class="section-header">
-            <div class="section-title">АРСЕНАЛ</div>
-            <div class="sort-controls">
-                <button class="sort-btn active" id="btnRarity">Редкость</button>
-                <button class="sort-btn" id="btnIncome">Прибыль</button>
-            </div>
+    <div class="app-container">
+        <!-- Шапка -->
+        <div class="header">
+            <div class="title">NETRUNNER TERMINAL</div>
+            <div class="balance" id="balanceDisplay">1 500 ₽</div>
+            <div class="income" id="incomeDisplay">+ 150 ₽/ч</div>
         </div>
-        <div class="inventory-grid" id="inventoryGrid"></div>
+
+        <!-- Главная кнопка -->
+        <button class="main-btn" id="claimBtn">Взломать и забрать</button>
+
+        <!-- Инвентарь -->
+        <div class="inventory-section">
+            <div class="section-header">
+                <div class="section-title">АРСЕНАЛ</div>
+                <div class="sort-controls">
+                    <button class="sort-btn active" id="btnRarity">Редкость</button>
+                    <button class="sort-btn" id="btnIncome">Прибыль</button>
+                </div>
+            </div>
+            <div class="inventory-grid" id="inventoryGrid"></div>
+        </div>
     </div>
 
     <!-- Контейнер для уведомлений -->
@@ -262,12 +277,10 @@
         let currentSort = 'rarity'; 
         const rarityWeight = { "legendary": 4, "epic": 3, "rare": 2, "common": 1 };
 
-        // --- ФУНКЦИЯ УВЕДОМЛЕНИЙ ---
+        // --- УВЕДОМЛЕНИЯ ---
         function showToast(message, rarity = 'common') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
-            
-            // Если редкость не передана (например, для денег), используем базовый стиль
             toast.className = `toast ${rarity}`;
             toast.innerText = message;
             
@@ -281,18 +294,14 @@
 
         // --- ОБНОВЛЕНИЕ ЭКРАНА ---
         function updateUI() {
-            // Считаем общий доход
             let totalIncome = inventory.reduce((sum, item) => sum + item.income, 0);
             
-            // Выводим баланс и доход
             document.getElementById('balanceDisplay').innerText = balance.toLocaleString('ru-RU') + ' ₽';
             document.getElementById('incomeDisplay').innerText = '+ ' + totalIncome.toLocaleString('ru-RU') + ' ₽/ч';
 
-            // Рендерим инвентарь
             const grid = document.getElementById('inventoryGrid');
             grid.innerHTML = ''; 
 
-            // Сортировка
             let sortedInv = [...inventory].sort((a, b) => {
                 if (currentSort === 'rarity') {
                     if (rarityWeight[b.rarity] !== rarityWeight[a.rarity]) {
@@ -304,55 +313,49 @@
                 }
             });
 
-            // Отрисовка карточек
             sortedInv.forEach(item => {
                 const card = document.createElement('div');
                 card.className = `item-card ${item.rarity}`;
                 card.innerHTML = `
-                    <div class="item-type">${item.type}</div>
-                    <div class="item-name">${item.name}</div>
+                    <div>
+                        <div class="item-type">${item.type}</div>
+                        <div class="item-name">${item.name}</div>
+                    </div>
                     <div class="item-income">+ ${item.income} ₽/ч</div>
                 `;
                 
-                // Детали при клике
                 card.addEventListener('click', () => {
                     const rarityRu = { common: "Обычный", rare: "Редкий", epic: "Эпический", legendary: "Легендарный" };
-                    showToast(`${item.name}\nРедкость: ${rarityRu[item.rarity]}\nДоход: +${item.income} ₽/ч`, item.rarity);
+                    showToast(`${item.name} | ${rarityRu[item.rarity]}`, item.rarity);
                 });
 
                 grid.appendChild(card);
             });
         }
 
-        // --- КНОПКИ СОРТИРОВКИ ---
+        // --- СОРТИРОВКА ---
         document.getElementById('btnRarity').addEventListener('click', function() {
             currentSort = 'rarity';
-            document.getElementById('btnRarity').classList.add('active');
+            this.classList.add('active');
             document.getElementById('btnIncome').classList.remove('active');
             updateUI();
         });
 
         document.getElementById('btnIncome').addEventListener('click', function() {
             currentSort = 'income';
-            document.getElementById('btnIncome').classList.add('active');
+            this.classList.add('active');
             document.getElementById('btnRarity').classList.remove('active');
             updateUI();
         });
 
-        // --- КНОПКА "ЗАБРАТЬ" ---
+        // --- КЛИК ПО КНОПКЕ ---
         document.getElementById('claimBtn').addEventListener('click', () => {
-            // Считаем, сколько заработали (для теста - рандом от 100 до 500)
             const earned = Math.floor(Math.random() * 400) + 100; 
             balance += earned;
-            
-            // Обновляем экран
             updateUI();
-            
-            // Показываем уведомление
             showToast(`💸 Взлом успешен! + ${earned} ₽`);
         });
 
-        // Запуск при загрузке
         updateUI();
 
     </script>
