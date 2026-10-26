@@ -52,7 +52,6 @@ def get_user(user_id):
     cursor.execute("SELECT balance, last_claim, base_income, last_daily, daily_streak, luck_level FROM users WHERE user_id = ?", (user_id,))
     row = cursor.fetchone()
     if not row:
-        # Новый игрок: баланс 2000, базовый доход 5
         now = int(time.time())
         cursor.execute("INSERT INTO users (user_id, last_claim, balance, base_income) VALUES (?, ?, ?, ?)", (user_id, now, 2000, 5))
         conn.commit()
@@ -99,7 +98,7 @@ def get_total_inventory_income(user_id):
 def get_inventory(user_id):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute("SELECT id, item_name, item_type, rarity, income FROM inventory WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT id, item_name, item_type, rarity, income FROM inventory WHERE user_id = ? ORDER BY income DESC", (user_id,))
     rows = cursor.fetchall()
     conn.close()
     return [{"id": row[0], "name": row[1], "type": row[2], "rarity": row[3], "income": row[4]} for row in rows]
@@ -185,7 +184,6 @@ def api_get_data():
     
     balance, last_claim, base_income, last_daily, streak, luck = get_user(user_id)
     
-    # Считаем накопленное на данный момент
     now = int(time.time())
     seconds_passed = now - last_claim
     hours_passed = min(seconds_passed / 3600.0, 4.0)
@@ -204,25 +202,8 @@ def api_get_data():
         "streak": streak, 
         "luck_level": luck, 
         "luck_cost": luck_cost,
-        "pending_money": pending_money, # Сколько накопилось
-        "time_left": max(0, 4 - hours_passed) # Сколько часов осталось до лимита
-    })
-    
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute("UPDATE users SET username = ? WHERE user_id = ?", (username, user_id))
-    conn.commit()
-    conn.close()
-    
-    balance, last_claim, base_income, last_daily, streak, luck = get_user(user_id)
-    total_income = base_income + get_total_inventory_income(user_id)
-    upgrade_cost = base_income * 20 
-    luck_cost = 5000 * (2 ** (luck - 1)) 
-    
-    return jsonify({
-        "balance": balance, "income": total_income, "base_income": base_income, 
-        "upgrade_cost": upgrade_cost, "streak": streak, 
-        "luck_level": luck, "luck_cost": luck_cost
+        "pending_money": pending_money,
+        "time_left": max(0, 4 - hours_passed)
     })
 
 @app.route('/api/upgrade', methods=['POST'])
