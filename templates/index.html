@@ -6,8 +6,8 @@
     <title>NetRunner</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #050505; background-image: radial-gradient(circle at 50% 0%, #0a2a12 0%, #050505 70%); color: #fff; display: flex; flex-direction: column; align-items: center; padding: 20px 15px; min-height: 100vh; overflow-x: hidden; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #050505; background-image: radial-gradient(circle at 50% 0%, #0a2a12 0%, #050505 70%); color: #fff; display: flex; flex-direction: column; align-items: center; padding: 15px; min-height: 100vh; overflow-x: hidden; }
         
         .neon-text { color: #00ff41; text-shadow: 0 0 10px rgba(0, 255, 65, 0.7), 0 0 20px rgba(0, 255, 65, 0.3); }
         
@@ -16,7 +16,7 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* Главная карточка */
-        .balance-card { background: linear-gradient(145deg, #121212, #0a0a0a); border: 1px solid #1a1a1a; border-radius: 16px; padding: 25px 20px; width: 100%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05); margin-bottom: 20px; position: relative; overflow: hidden; }
+        .balance-card { background: linear-gradient(145deg, #121212, #0a0a0a); border: 1px solid #1a1a1a; border-radius: 16px; padding: 20px 15px; width: 100%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05); margin-bottom: 20px; position: relative; overflow: hidden; }
         .balance-card::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(0,255,65,0.05) 0%, transparent 60%); pointer-events: none; }
         
         .balance-title { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; }
@@ -24,40 +24,45 @@
         .income-text { color: #b026ff; font-size: 14px; font-weight: bold; text-shadow: 0 0 8px rgba(176, 38, 255, 0.5); margin-bottom: 15px; }
         
         /* Полоса накопления */
-        .progress-container { background: #000; border-radius: 10px; padding: 10px; border: 1px solid #222; margin-top: 15px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.8); }
-        .progress-header { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; color: #aaa; }
-        .progress-bar-bg { width: 100%; height: 12px; background: #1a1a1a; border-radius: 6px; overflow: hidden; position: relative; }
-        .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #00ff41, #00bfff); border-radius: 6px; width: 0%; transition: width 0.5s ease-in-out; box-shadow: 0 0 10px #00ff41; }
+        .progress-container { background: #000; border-radius: 10px; padding: 12px; border: 1px solid #222; margin-top: 10px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.8); }
+        .progress-header { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; color: #aaa; font-weight: bold; }
+        .progress-bar-bg { width: 100%; height: 14px; background: #1a1a1a; border-radius: 7px; overflow: hidden; position: relative; }
+        .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #00ff41, #00bfff); border-radius: 7px; width: 0%; transition: width 0.5s ease-in-out; box-shadow: 0 0 10px #00ff41; }
         .progress-footer { font-size: 10px; color: #666; margin-top: 8px; text-align: center; }
 
         /* Кнопки */
-        .btn { width: 100%; padding: 16px; background: linear-gradient(145deg, #111, #0a0a0a); border: 1px solid #333; color: #fff; font-size: 15px; font-weight: bold; border-radius: 12px; cursor: pointer; margin-bottom: 10px; transition: all 0.2s; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); text-transform: uppercase; letter-spacing: 1px; }
+        .btn { width: 100%; padding: 16px; background: linear-gradient(145deg, #111, #0a0a0a); border: 1px solid #333; color: #fff; font-size: 14px; font-weight: bold; border-radius: 12px; cursor: pointer; margin-bottom: 10px; transition: all 0.1s; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); text-transform: uppercase; letter-spacing: 1px; }
         .btn:active { transform: scale(0.96); }
         
-        .btn-claim { background: linear-gradient(145deg, #003311, #001105); border-color: #00ff41; color: #00ff41; box-shadow: 0 0 15px rgba(0,255,65,0.3); font-size: 18px; padding: 20px; text-shadow: 0 0 5px rgba(0,255,65,0.5); }
+        .btn-claim { background: linear-gradient(145deg, #003311, #001105); border-color: #00ff41; color: #00ff41; box-shadow: 0 0 15px rgba(0,255,65,0.3); font-size: 18px; padding: 18px; text-shadow: 0 0 5px rgba(0,255,65,0.5); }
         .btn-claim:active { background: #00ff41; color: #000; }
         
         .btn-daily { border-color: #00ff00; color: #00ff00; box-shadow: 0 0 10px rgba(0,255,0,0.2); }
         .btn-upgrade { border-color: #00bfff; color: #00bfff; box-shadow: 0 0 10px rgba(0,191,255,0.2); }
         .btn-luck { border-color: #ff8c00; color: #ff8c00; box-shadow: 0 0 10px rgba(255,140,0,0.2); }
-        .btn-premium { border-color: #ffd700; color: #ffd700; box-shadow: 0 0 10px rgba(255,215,0,0.2); }
+        .btn-premium { border-color: #ffd700; color: #ffd700; box-shadow: 0 0 10px rgba(255,215,0,0.2); margin-top: 15px; margin-bottom: 80px;}
 
         /* Сетка кейсов */
-        .case-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-bottom: 15px; }
-        .btn-case { padding: 12px 5px; font-size: 12px; border-color: #b026ff; color: #b026ff; box-shadow: 0 0 10px rgba(176,38,255,0.2); display: flex; flex-direction: column; align-items: center; line-height: 1.4; }
-        .btn-case span { font-size: 10px; color: #888; margin-top: 4px; text-transform: none; letter-spacing: 0; font-weight: normal; }
+        .case-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-top: 10px; }
+        .btn-case { padding: 15px 5px; font-size: 13px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2; height: 75px; margin-bottom: 0; }
+        .btn-case span { font-size: 11px; color: #aaa; margin-top: 5px; text-transform: none; letter-spacing: 0; font-weight: normal; }
         .btn-case.basic { border-color: #00ff41; color: #00ff41; box-shadow: 0 0 10px rgba(0,255,65,0.2); }
         .btn-case.advanced { border-color: #00bfff; color: #00bfff; box-shadow: 0 0 10px rgba(0,191,255,0.2); }
         .btn-case.pro { border-color: #b026ff; color: #b026ff; box-shadow: 0 0 10px rgba(176,38,255,0.2); }
         .btn-case.mythic { border-color: #ff0000; color: #ff0000; box-shadow: 0 0 10px rgba(255,0,0,0.2); }
 
+        /* Кнопки сортировки */
+        .sort-controls { display: flex; gap: 8px; width: 100%; margin-bottom: 15px; }
+        .sort-btn { flex: 1; padding: 10px; background: #111; border: 1px solid #333; color: #888; font-size: 11px; border-radius: 8px; cursor: pointer; text-transform: uppercase; font-weight: bold; transition: 0.2s; }
+        .sort-btn.active { border-color: #00ff41; color: #00ff41; box-shadow: 0 0 10px rgba(0,255,65,0.2); }
+
         /* Инвентарь */
         .inventory-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; margin-top: 10px; padding-bottom: 80px; }
-        .item-card { background: linear-gradient(145deg, #151515, #0a0a0a); border: 1px solid #222; padding: 15px 10px; border-radius: 12px; text-align: center; cursor: pointer; transition: 0.2s; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .item-card { background: linear-gradient(145deg, #151515, #0a0a0a); border: 1px solid #222; padding: 12px 8px; border-radius: 12px; text-align: center; cursor: pointer; transition: 0.2s; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; min-height: 120px;}
         .item-card:active { transform: scale(0.95); }
-        .item-icon { font-size: 36px; margin-bottom: 8px; }
-        .item-type { font-size: 10px; color: #888; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
-        .item-name { font-size: 12px; color: #fff; margin-bottom: 6px; font-weight: bold; line-height: 1.2; }
+        .item-icon { font-size: 32px; margin-bottom: 8px; }
+        .item-type { font-size: 9px; color: #888; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
+        .item-name { font-size: 11px; color: #fff; margin-bottom: 8px; font-weight: bold; line-height: 1.2; }
         .item-income { font-size: 13px; color: #00ff41; font-weight: bold; text-shadow: 0 0 5px rgba(0,255,65,0.5); }
         
         /* Рамки редкостей */
@@ -69,7 +74,7 @@
 
         /* Нижнее меню */
         .nav-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(10,10,10,0.95); backdrop-filter: blur(10px); display: flex; justify-content: space-around; padding: 12px 0 20px 0; border-top: 1px solid #222; z-index: 100; }
-        .nav-btn { background: none; border: none; color: #555; font-size: 26px; cursor: pointer; transition: 0.2s; }
+        .nav-btn { background: none; border: none; color: #555; font-size: 24px; cursor: pointer; transition: 0.2s; }
         .nav-btn.active { color: #00ff41; text-shadow: 0 0 15px #00ff41; transform: translateY(-3px); }
         
         /* Мастерская */
@@ -119,7 +124,13 @@
 
     <!-- Вкладка 2: Арсенал -->
     <div id="tab-inventory" class="tab-content">
-        <h2 style="margin-top: 10px; margin-bottom: 5px; font-size: 20px;" class="neon-text">СТОЙКА СЕРВЕРА</h2>
+        <h2 style="margin-top: 10px; margin-bottom: 15px; font-size: 20px;" class="neon-text">СТОЙКА СЕРВЕРА</h2>
+        
+        <div class="sort-controls">
+            <button class="sort-btn active" onclick="changeSort('rarity', this)">По редкости</button>
+            <button class="sort-btn" onclick="changeSort('income', this)">По доходу</button>
+        </div>
+
         <p style="font-size: 11px; color: #888; margin-bottom: 15px;">Нажми на деталь, чтобы продать</p>
         <div class="inventory-grid" id="inventoryGrid"></div>
     </div>
@@ -228,20 +239,54 @@
             });
         }
 
+        // --- ЛОГИКА СОРТИРОВКИ ИНВЕНТАРЯ ---
+        let currentSort = 'rarity';
+        let currentInventory = [];
+
+        function changeSort(type, btn) {
+            currentSort = type;
+            document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderInventory(currentInventory);
+        }
+
+        function renderInventory(inv) {
+            const grid = document.getElementById('inventoryGrid');
+            grid.innerHTML = ''; 
+            
+            if (inv.length === 0) { 
+                grid.innerHTML = '<div style="grid-column: span 2; text-align:center; color:#888; margin-top:20px;">Стойка пуста. Покупай детали!</div>'; 
+                return; 
+            }
+
+            const rWeight = {"Мифический": 5, "Легендарный": 4, "Эпический": 3, "Редкий": 2, "Обычный": 1};
+            
+            let sortedInv = [...inv].sort((a, b) => {
+                if (currentSort === 'rarity') {
+                    if (rWeight[b.rarity] !== rWeight[a.rarity]) {
+                        return rWeight[b.rarity] - rWeight[a.rarity];
+                    }
+                    return b.income - a.income;
+                } else {
+                    return b.income - a.income;
+                }
+            });
+
+            sortedInv.forEach(item => {
+                const div = document.createElement('div');
+                div.className = `item-card rarity-${item.rarity}`;
+                div.onclick = () => sellItem(item.id, item.name);
+                const icon = icons[item.type] || "⚙️";
+                div.innerHTML = `<div class="item-icon">${icon}</div><div class="item-type">${item.type}</div><div class="item-name">${item.name}</div><div class="item-income">+${item.income} ₽/ч</div>`;
+                grid.appendChild(div);
+            });
+        }
+
         function loadInventory() {
             fetch('/api/get_inventory', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
             .then(res => res.json()).then(data => {
-                const grid = document.getElementById('inventoryGrid');
-                grid.innerHTML = ''; 
-                if (data.inventory.length === 0) { grid.innerHTML = '<div style="grid-column: span 2; text-align:center; color:#888; margin-top:20px;">Стойка пуста. Покупай детали!</div>'; return; }
-                data.inventory.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = `item-card rarity-${item.rarity}`;
-                    div.onclick = () => sellItem(item.id, item.name);
-                    const icon = icons[item.type] || "⚙️";
-                    div.innerHTML = `<div class="item-icon">${icon}</div><div class="item-type">${item.type}</div><div class="item-name">${item.name}</div><div class="item-income">+${item.income} ₽/ч</div>`;
-                    grid.appendChild(div);
-                });
+                currentInventory = data.inventory;
+                renderInventory(currentInventory);
             });
         }
 
