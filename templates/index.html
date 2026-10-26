@@ -6,6 +6,7 @@
     <title>NetRunner Terminal</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        /* Сброс стилей */
         * {
             margin: 0;
             padding: 0;
@@ -21,12 +22,13 @@
             flex-direction: column;
             align-items: center;
             padding: 20px;
-            padding-bottom: 80px; /* Место для тостов */
+            padding-bottom: 100px; /* Чтобы уведомления не перекрывали контент */
         }
 
         /* --- Шапка --- */
         .header {
             width: 100%;
+            max-width: 400px;
             text-align: center;
             margin-bottom: 20px;
         }
@@ -40,7 +42,7 @@
         }
 
         .balance {
-            font-size: 48px;
+            font-size: 44px;
             font-weight: bold;
             text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41;
             margin-bottom: 5px;
@@ -52,10 +54,10 @@
             text-shadow: 0 0 5px #b026ff;
         }
 
-        /* --- Кнопка "Забрать" --- */
+        /* --- Главная кнопка --- */
         .main-btn {
             width: 100%;
-            max-width: 350px;
+            max-width: 400px;
             padding: 15px;
             background: transparent;
             border: 2px solid #00ff41;
@@ -63,7 +65,6 @@
             font-size: 18px;
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 1px;
             border-radius: 8px;
             cursor: pointer;
             box-shadow: 0 0 10px #00ff41, inset 0 0 10px #00ff41;
@@ -77,17 +78,17 @@
             box-shadow: 0 0 30px #00ff41;
         }
 
-        /* --- Секция инвентаря --- */
+        /* --- Инвентарь --- */
         .inventory-section {
             width: 100%;
-            max-width: 350px;
+            max-width: 400px;
         }
 
         .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             border-bottom: 1px solid #333;
             padding-bottom: 10px;
         }
@@ -101,7 +102,7 @@
         /* Кнопки сортировки */
         .sort-controls {
             display: flex;
-            gap: 5px;
+            gap: 8px;
         }
 
         .sort-btn {
@@ -109,37 +110,43 @@
             border: 1px solid #333;
             color: #888;
             font-size: 10px;
-            padding: 5px 8px;
+            padding: 6px 10px;
             cursor: pointer;
             border-radius: 4px;
             font-family: inherit;
             transition: 0.2s;
+            text-transform: uppercase;
         }
 
-        .sort-btn:hover, .sort-btn.active {
+        .sort-btn.active {
             border-color: #00ff41;
             color: #00ff41;
             box-shadow: 0 0 5px #00ff41;
         }
 
-        /* --- Сетка предметов --- */
+        /* Сетка предметов */
         .inventory-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 10px;
         }
 
+        /* Карточка */
         .item-card {
             background: #111;
             border: 1px solid #333;
-            padding: 10px;
+            padding: 12px;
             border-radius: 6px;
             text-align: left;
-            position: relative;
-            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        
+        .item-card:active {
+            transform: scale(0.97);
         }
 
-        /* Редкости (рамки) */
+        /* Рамки редкостей */
         .item-card.common { border-color: #555; }
         .item-card.rare { border-color: #00bfff; box-shadow: inset 0 0 10px rgba(0, 191, 255, 0.2); }
         .item-card.epic { border-color: #b026ff; box-shadow: inset 0 0 10px rgba(176, 38, 255, 0.2); }
@@ -149,23 +156,23 @@
             font-size: 9px;
             color: #555;
             text-transform: uppercase;
-            margin-bottom: 3px;
+            margin-bottom: 4px;
         }
 
         .item-name {
-            font-size: 12px;
+            font-size: 13px;
             margin-bottom: 8px;
             color: #fff;
             font-weight: bold;
         }
 
         .item-income {
-            font-size: 11px;
+            font-size: 12px;
             color: #00ff41;
             font-weight: bold;
         }
 
-        /* --- Всплывающие уведомления (Тосты) --- */
+        /* --- Всплывающие окна (Тосты) --- */
         .toast-container {
             position: fixed;
             bottom: 20px;
@@ -177,6 +184,7 @@
             z-index: 1000;
             width: 90%;
             max-width: 350px;
+            pointer-events: none; /* Чтобы не блокировали клики */
         }
 
         .toast {
@@ -187,16 +195,17 @@
             border-radius: 8px;
             font-size: 14px;
             text-align: center;
-            box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.4);
             animation: slideUp 0.3s ease-out forwards;
             opacity: 0;
             transform: translateY(20px);
         }
 
-        /* Цвета для разных уведомлений */
-        .toast.error { border-color: #ff3333; color: #ff3333; box-shadow: 0 0 15px rgba(255, 51, 51, 0.5); }
-        .toast.epic { border-color: #b026ff; color: #b026ff; box-shadow: 0 0 15px rgba(176, 38, 255, 0.5); }
-        .toast.gold { border-color: #ffd700; color: #ffd700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.5); }
+        /* Цвета уведомлений */
+        .toast.rare { border-color: #00bfff; color: #00bfff; box-shadow: 0 0 15px rgba(0, 191, 255, 0.4); }
+        .toast.epic { border-color: #b026ff; color: #b026ff; box-shadow: 0 0 15px rgba(176, 38, 255, 0.4); }
+        .toast.legendary { border-color: #ffd700; color: #ffd700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.4); }
+        .toast.error { border-color: #ff3333; color: #ff3333; box-shadow: 0 0 15px rgba(255, 51, 51, 0.4); }
 
         @keyframes slideUp {
             to { opacity: 1; transform: translateY(0); }
@@ -216,8 +225,8 @@
     <!-- Шапка -->
     <div class="header">
         <div class="title">NETRUNNER TERMINAL</div>
-        <div class="balance" id="balanceDisplay">1 500 ₽</div>
-        <div class="income">+ 150 ₽/ч</div>
+        <div class="balance" id="balanceDisplay">0 ₽</div>
+        <div class="income" id="incomeDisplay">+ 0 ₽/ч</div>
     </div>
 
     <!-- Главная кнопка -->
@@ -228,20 +237,20 @@
         <div class="section-header">
             <div class="section-title">АРСЕНАЛ</div>
             <div class="sort-controls">
-                <button class="sort-btn active" onclick="sortInventory('rarity', this)">По редкости</button>
-                <button class="sort-btn" onclick="sortInventory('income', this)">По прибыли</button>
+                <button class="sort-btn active" id="btnRarity">Редкость</button>
+                <button class="sort-btn" id="btnIncome">Прибыль</button>
             </div>
         </div>
-        <div class="inventory-grid" id="inventoryGrid">
-            <!-- Сюда JS будет вставлять карточки -->
-        </div>
+        <div class="inventory-grid" id="inventoryGrid"></div>
     </div>
 
-    <!-- Контейнер для всплывающих окон -->
+    <!-- Контейнер для уведомлений -->
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
-        // --- БАЗА ПРЕДМЕТОВ (пока для теста) ---
+        // --- ДАННЫЕ ---
+        let balance = 1500;
+        
         let inventory = [
             { id: 1, name: "Скрипт 'Червь'", type: "Скрипт", rarity: "common", income: 50 },
             { id: 2, name: "Бот-парсер", type: "Бот", rarity: "rare", income: 150 },
@@ -250,53 +259,53 @@
             { id: 5, name: "Троян-невидимка", type: "Троян", rarity: "common", income: 70 }
         ];
 
-        let currentSort = 'rarity'; // Текущий режим сортировки по умолчанию
+        let currentSort = 'rarity'; 
+        const rarityWeight = { "legendary": 4, "epic": 3, "rare": 2, "common": 1 };
 
-        // Веса для сортировки по редкости
-        const rarityWeight = {
-            "legendary": 4,
-            "epic": 3,
-            "rare": 2,
-            "common": 1
-        };
-
-        // --- ФУНКЦИЯ ВСПЛЫВАЮЩИХ ОКОН (ТОСТОВ) ---
-        function showToast(message, type = 'default') {
+        // --- ФУНКЦИЯ УВЕДОМЛЕНИЙ ---
+        function showToast(message, rarity = 'common') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
+            
+            // Если редкость не передана (например, для денег), используем базовый стиль
+            toast.className = `toast ${rarity}`;
             toast.innerText = message;
             
             container.appendChild(toast);
 
-            // Удаляем через 3 секунды
             setTimeout(() => {
                 toast.classList.add('hiding');
-                setTimeout(() => toast.remove(), 300); // Ждем окончания анимации
-            }, 3000);
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
         }
 
-        // --- РЕНДЕР ИНВЕНТАРЯ ---
-        function renderInventory() {
-            const grid = document.getElementById('inventoryGrid');
-            grid.innerHTML = ''; // Очищаем
+        // --- ОБНОВЛЕНИЕ ЭКРАНА ---
+        function updateUI() {
+            // Считаем общий доход
+            let totalIncome = inventory.reduce((sum, item) => sum + item.income, 0);
+            
+            // Выводим баланс и доход
+            document.getElementById('balanceDisplay').innerText = balance.toLocaleString('ru-RU') + ' ₽';
+            document.getElementById('incomeDisplay').innerText = '+ ' + totalIncome.toLocaleString('ru-RU') + ' ₽/ч';
 
-            // Сортируем копию массива
-            let sortedInventory = [...inventory].sort((a, b) => {
+            // Рендерим инвентарь
+            const grid = document.getElementById('inventoryGrid');
+            grid.innerHTML = ''; 
+
+            // Сортировка
+            let sortedInv = [...inventory].sort((a, b) => {
                 if (currentSort === 'rarity') {
-                    // Сначала по редкости (убывание), потом по доходу
                     if (rarityWeight[b.rarity] !== rarityWeight[a.rarity]) {
                         return rarityWeight[b.rarity] - rarityWeight[a.rarity];
                     }
                     return b.income - a.income;
-                } else if (currentSort === 'income') {
-                    // По доходу (убывание)
+                } else {
                     return b.income - a.income;
                 }
             });
 
-            // Отрисовываем
-            sortedInventory.forEach(item => {
+            // Отрисовка карточек
+            sortedInv.forEach(item => {
                 const card = document.createElement('div');
                 card.className = `item-card ${item.rarity}`;
                 card.innerHTML = `
@@ -305,47 +314,46 @@
                     <div class="item-income">+ ${item.income} ₽/ч</div>
                 `;
                 
-                // Добавляем клик по карточке для показа деталей
+                // Детали при клике
                 card.addEventListener('click', () => {
-                    showToast(`Предмет: ${item.name}. Редкость: ${item.rarity.toUpperCase()}. Доход: ${item.income} ₽/ч`, item.rarity);
+                    const rarityRu = { common: "Обычный", rare: "Редкий", epic: "Эпический", legendary: "Легендарный" };
+                    showToast(`${item.name}\nРедкость: ${rarityRu[item.rarity]}\nДоход: +${item.income} ₽/ч`, item.rarity);
                 });
 
                 grid.appendChild(card);
             });
         }
 
-        // --- СОРТИРОВКА ---
-        function sortInventory(type, btn) {
-            currentSort = type;
-            
-            // Меняем активный класс у кнопок
-            document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-
-            renderInventory();
-        }
-
-        // --- КНОПКА "ЗАБРАТЬ" ---
-        const claimBtn = document.getElementById('claimBtn');
-        claimBtn.addEventListener('click', () => {
-            // Тут в будущем будет запрос к боту. Пока просто рандомный доход.
-            const earned = Math.floor(Math.random() * 500) + 100; 
-            
-            // Меняем текст баланса
-            const balanceDisplay = document.getElementById('balanceDisplay');
-            // (Просто для визуала прибавляем к текущему)
-            let currentBalance = parseInt(balanceDisplay.innerText.replace(/\s/g, '').replace('₽', ''));
-            let newBalance = currentBalance + earned;
-            
-            // Красивое форматирование с пробелами
-            balanceDisplay.innerText = newBalance.toLocaleString('ru-RU') + ' ₽';
-
-            // Показываем красивый тост вместо alert
-            showToast(`💸 Успешный взлом! Получено ${earned} ₽`);
+        // --- КНОПКИ СОРТИРОВКИ ---
+        document.getElementById('btnRarity').addEventListener('click', function() {
+            currentSort = 'rarity';
+            document.getElementById('btnRarity').classList.add('active');
+            document.getElementById('btnIncome').classList.remove('active');
+            updateUI();
         });
 
-        // Инициализация при загрузке
-        renderInventory();
+        document.getElementById('btnIncome').addEventListener('click', function() {
+            currentSort = 'income';
+            document.getElementById('btnIncome').classList.add('active');
+            document.getElementById('btnRarity').classList.remove('active');
+            updateUI();
+        });
+
+        // --- КНОПКА "ЗАБРАТЬ" ---
+        document.getElementById('claimBtn').addEventListener('click', () => {
+            // Считаем, сколько заработали (для теста - рандом от 100 до 500)
+            const earned = Math.floor(Math.random() * 400) + 100; 
+            balance += earned;
+            
+            // Обновляем экран
+            updateUI();
+            
+            // Показываем уведомление
+            showToast(`💸 Взлом успешен! + ${earned} ₽`);
+        });
+
+        // Запуск при загрузке
+        updateUI();
 
     </script>
 </body>
