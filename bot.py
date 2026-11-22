@@ -9,10 +9,14 @@ from telebot.types import LabeledPrice, PreCheckoutQuery
 TOKEN = os.environ.get("BOT_TOKEN")
 DB_FILE = "cat_baron.db"
 
+# ⚠️ ОБЯЗАТЕЛЬНО: Замените этот ID на ваш личный Telegram ID (узнать можно в боте @userinfobot)
+ADMIN_ID = 5823816719 
+
 # --- БАЗА ДАННЫХ ---
 def init_db():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
+    # Основная таблица пользователей
     cursor.execute('''CREATE TABLE IF NOT EXISTS users (
         user_id INTEGER PRIMARY KEY, 
         coins INTEGER DEFAULT 0, 
@@ -25,6 +29,25 @@ def init_db():
         cat_cost INTEGER DEFAULT 2000,
         last_energy_update INTEGER DEFAULT 0
     )''')
+    
+    # НОВОЕ: Таблица промокодов
+    cursor.execute('''CREATE TABLE IF NOT EXISTS promocodes (
+        code TEXT PRIMARY KEY,
+        reward_type TEXT,        -- 'coins', 'energy', 'tap_power', 'cat'
+        reward_value REAL,       
+        max_uses INTEGER DEFAULT 0,   
+        used_count INTEGER DEFAULT 0,
+        expires_at INTEGER DEFAULT 0  
+    )''')
+    
+    # НОВОЕ: Кто уже активировал
+    cursor.execute('''CREATE TABLE IF NOT EXISTS promocode_uses (
+        user_id INTEGER,
+        code TEXT,
+        used_at INTEGER,
+        PRIMARY KEY (user_id, code)
+    )''')
+    
     conn.commit()
     conn.close()
 
@@ -65,6 +88,68 @@ def update_user(user_id, **kwargs):
         cursor.execute(f"UPDATE users SET {key} = ? WHERE user_id = ?", (value, user_id))
     conn.commit()
     conn.close()
+
+# --- ЛОГИКА ПРОМОКОДОВ ---
+def activate_promo(user_id, code_input):
+    code = code_input.strip().upper()
+    now = int(time.time())
+    
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    
+    # 1. Ищем код
+    cursor.execute("SELECT reward_type, reward_value, max_uses, used_count, expires_at FROM promocodes WHERE code = ?", (code,))
+    promo = cursor.fetchone()
+    
+    if not promo:
+        conn.close()
+        return False, "❌ Такого промокода не существует."
+    
+    reward_type, reward_value, max_uses, used_count, expires_at = promo
+    
+    # 2. Проверяем срок
+    if expires_at != 0 and now > expires_at:
+        conn.close()
+        return False, "⏰ Срок действия промокода истек."
+        
+    # 3. Проверяем лимит
+    if max_uses != 0 and used_count >= max_uses:
+        conn.close()
+        return False, "🚫 Лимит активаций исчерпан."
+        
+    # 4. Проверяем, не активировал ли уже этот юзер
+    cursor.execute("SELECT 1 FROM promocode_uses WHERE user_id = ? AND code = ?", (user_id, code))
+    if cursor.fetchone():
+        conn.close()
+        return False, "⚠️ Вы уже активировали этот промокод."
+        
+    # 5. Выдаем награду
+    msg = ""
+    if reward_type == "coins":
+        cursor.execute("UPDATE users SET coins = coins + ? WHERE user_id = ?", (reward_value, user_id))
+        msg = f"💰 Начислено {int(reward_value)} монет!"
+        
+    elif reward_type == "energy":
+        cursor.execute("UPDATE users SET energy = max_energy WHERE user_id = ?", (user_id,))
+        msg = f"⚡ Энергия полностью восстановлена!"
+        
+    elif reward_type == "tap_power":
+        cursor.execute("UPDATE users SET tap_power = tap_power + ? WHERE user_id = ?", (reward_value, user_id))
+        msg = f"👆 Сила тапа увеличена на {int(reward_value)}!"
+        
+    elif reward_type == "cat":
+        cursor.execute("UPDATE users SET cat_count = cat_count + ? WHERE user_id = ?", (reward_value, user_id))
+        msg = f"🐱 В коллекцию добавлено котов: {int(reward_value)}!"
+        
+    # 6. Записываем использование
+    cursor.execute("INSERT INTO promocode_uses (user_id, code, used_at) VALUES (?, ?, ?)", (user_id, code, now))
+    cursor.execute("UPDATE promocodes SET used_count = used_count + 1 WHERE code = ?", (code,))
+    
+    conn.commit()
+    conn.close()
+    
+    return True, f"✅ Промокод активирован!\n{msg}"
+
 
 # --- ВЕБ-СЕРВЕР ---
 app = Flask(__name__)
@@ -126,6 +211,19 @@ def api_buy_energy():
     except Exception as e:
         return jsonify({"success": False})
 
+# НОВОЕ: API для активации промокода из Mini App
+@app.route('/api/promo', methods=['POST'])
+def api_promo():
+    data = request.json
+    user_id = data.get('user_id')
+    code = data.get('code', '')
+    
+    if not user_id or not code:
+        return jsonify({"success": False, "message": "Ошибка данных"}), 400
+        
+    success, message = activate_promo(user_id, code)
+    return jsonify({"success": success, "message": message})
+
 def run_web():
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
 
@@ -135,7 +233,50 @@ bot = telebot.TeleBot(TOKEN)
 @bot.message_handler(commands=['start'])
 def start(message):
     get_user(message.from_user.id)
-    bot.send_message(message.chat.id, "🐱 Добро пожаловать в Кот-Барон!\nЖми кнопку 'Играть' внизу, чтобы начать зарабатывать миллионы.")
+    bot.send_message(message.chat.id, "🐱 Добро пожаловать в Кот-Барон!\nЖми кнопку 'Играть' внизу, чтобы начать зарабатывать миллионы.\n\nДоступна команда /promo для ввода кодов!")
+
+@bot.message_handler(commands=['promo'])
+def cmd_promo(message):
+    args = message.text.split(maxsplit=1)
+    if len(args) < 2:
+        bot.reply_to(message, "ℹ️ Использование: /promo КОД\nПример: /promo KOTIK2024")
+        return
+        
+    code = args[1]
+    success, text = activate_promo(message.from_user.id, code)
+    bot.reply_to(message, text)
+
+# НОВОЕ: Секретная команда для создания промокодов (только для вас)
+@bot.message_handler(commands=['addpromo'])
+def cmd_addpromo(message):
+    if message.from_user.id != ADMIN_ID:
+        return # Игнорируем всех, кроме админа
+        
+    # Формат: /addpromo КОД ТИП ЗНАЧЕНИЕ ЛИМИТ
+    # Пример: /addpromo SUPER2024 coins 10000 100
+    args = message.text.split()
+    if len(args) < 5:
+        bot.reply_to(message, "Формат: /addpromo КОД ТИП ЗНАЧЕНИЕ ЛИМИТ\nТипы: coins, energy, tap_power, cat")
+        return
+        
+    code = args[1].upper()
+    r_type = args[2]
+    r_value = float(args[3])
+    max_uses = int(args[4])
+    
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO promocodes (code, reward_type, reward_value, max_uses) 
+            VALUES (?, ?, ?, ?)
+        """, (code, r_type, r_value, max_uses))
+        conn.commit()
+        bot.reply_to(message, f"✅ Промокод `{code}` успешно создан!", parse_mode='Markdown')
+    except sqlite3.IntegrityError:
+        bot.reply_to(message, f"❌ Промокод `{code}` уже существует.", parse_mode='Markdown')
+    finally:
+        conn.close()
 
 @bot.pre_checkout_query_handler(func=lambda query: True)
 def checkout(pre_checkout_query: PreCheckoutQuery):
