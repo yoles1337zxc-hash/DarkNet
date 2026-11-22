@@ -12,7 +12,7 @@ from aiohttp import web
 BOT_TOKEN = os.environ.get("8986372455:AAEqZjMO8rKRbSyK_RdjbGFpP1wa7OJqdYI")
 
 # Если WEBAPP_URL не задан, ставим заглушку, чтобы бот не падал при старте
-WEBAPP_URL = os.environ.get("https://dashboard.render.com/web/srv-dbf0rc0n74is73b5fr3g/deploys")
+WEBAPP_URL = os.environ.get("https://darknet-a0b2.onrender.com")
 
 # Render автоматически назначает порт. Берем его из переменной PORT
 WEBAPP_PORT = int(os.environ.get("PORT", 8080))
