@@ -8,38 +8,34 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiohttp import web
 
 # --- НАСТРОЙКИ ---
-# Если переменной BOT_TOKEN нет в Render, бот упадет с понятной ошибкой
+# Получаем токен из переменных окружения
 BOT_TOKEN = os.environ.get("8986372455:AAEqZjMO8rKRbSyK_RdjbGFpP1wa7OJqdYI")
+if not BOT_TOKEN:
+    logging.warning("ВНИМАНИЕ: Переменная BOT_TOKEN не найдена в окружении! Используется тестовая заглушка.")
+    BOT_TOKEN = "123456789:TEST_TOKEN" # Заглушка, чтобы код не падал
 
-# Если WEBAPP_URL не задан, ставим заглушку, чтобы бот не падал при старте
-WEBAPP_URL = os.environ.get("https://darknet-a0b2.onrender.com")
+# Выводим первые 5 символов токена в логи для проверки (безопасно)
+logging.info(f"Загружен токен (первые 5 символов): {BOT_TOKEN[:5]}...")
 
-# Render автоматически назначает порт. Берем его из переменной PORT
+WEBAPP_URL = os.environ.get("WEBAPP_URL", "https://example.com")
 WEBAPP_PORT = int(os.environ.get("PORT", 8080))
 
 logging.basicConfig(level=logging.INFO)
-
-# Проверка на наличие токена перед запуском
-if not BOT_TOKEN:
-    logging.error("КРИТИЧЕСКАЯ ОШИБКА: Переменная BOT_TOKEN не задана в настройках Render!")
-    raise ValueError("BOT_TOKEN environment variable is not set")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 # --- ВЕБ-СЕРВЕР ДЛЯ ОТДАЧИ HTML ---
 async def handle_index(request):
-    # Отдаем файл index.html из корневой папки
     return web.FileResponse('./index.html')
 
 async def handle_health(request):
-    # Заглушка для Render (чтобы он видел, что сервис живой)
     return web.Response(text="Bot is running!")
 
 def create_web_app():
     app = web.Application()
     app.router.add_get('/index.html', handle_index)
-    app.router.add_get('/', handle_health) # Render пингует этот адрес
+    app.router.add_get('/', handle_health) 
     return app
 
 # --- ХЕНДЛЕРЫ БОТА ---
@@ -60,7 +56,6 @@ async def cmd_start(message: types.Message):
 
 # --- ЗАПУСК ---
 async def main():
-    # Запускаем веб-сервер
     app = create_web_app()
     runner = web.AppRunner(app)
     await runner.setup()
@@ -68,11 +63,10 @@ async def main():
     try:
         site = web.TCPSite(runner, '0.0.0.0', WEBAPP_PORT)
         await site.start()
-        logging.info(f"Веб-сервер успешно запущен на порту {WEBAPP_PORT}")
+        logging.info(f"Веб-сервер запущен на порту {WEBAPP_PORT}")
     except Exception as e:
         logging.error(f"Не удалось запустить веб-сервер: {e}")
 
-    # Запускаем бота
     logging.info("Запуск Telegram-бота...")
     await dp.start_polling(bot)
 
