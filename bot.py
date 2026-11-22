@@ -8,7 +8,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiohttp import web
 
 # --- НАСТРОЙКИ ---
-BOT_TOKEN = "YOUR_BOT_TOKEN"  # ЗАМЕНИТЕ НА ВАШ ТОКЕН
+BOT_TOKEN = "8986372455:AAGDbogn60ZJPeGiC626wFOej4isMBHj7_Q"  # ЗАМЕНИТЕ НА ВАШ ТОКЕН
 WEBAPP_HOST = "0.0.0.0"
 WEBAPP_PORT = 8080
 # URL, где будет хоститься index.html. 
