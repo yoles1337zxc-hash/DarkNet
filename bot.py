@@ -9,7 +9,7 @@ from aiohttp import web
 
 # --- НАСТРОЙКИ ДЛЯ RENDER ---
 # Берем токен из переменных окружения (Environment Variables) в панели Render
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "ВАШ_ТОКЕН_ЕСЛИ_НЕ_ИСПОЛЬЗУЕТЕ_RENDER")
+BOT_TOKEN = os.environ.get("8986372455:AAGDbogn60ZJPeGiC626wFOej4isMBHj7_Q")
 # Берем URL из переменных (Render сам выдаст вам адрес, скопируйте его сюда)
 WEBAPP_URL = os.environ.get("WEBAPP_URL", "https://ваш-сайт.onrender.com/index.html")
 WEBAPP_HOST = "0.0.0.0"
