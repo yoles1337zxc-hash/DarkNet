@@ -1,2 +1,228 @@
-<input type="text" id="promoInput" placeholder="Промокод">
-<button onclick="activatePromo()">Активировать</button>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Мото Кейсы</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: #17212b;
+            --card-bg: #232e3c;
+            --text-color: #ffffff;
+            --accent: #5288c1;
+            --gray: #a0a0a0;
+            --blue: #3498db;
+            --purple: #9b59b6;
+            --orange: #e67e22;
+            --red: #e74c3c;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            user-select: none;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .balance {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4cd137;
+            margin-top: 5px;
+        }
+        .inventory {
+            width: 100%;
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .inventory-title {
+            font-size: 14px;
+            color: var(--gray);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .inv-item {
+            font-size: 14px;
+            padding: 8px 0;
+            border-bottom: 1px solid #2c3845;
+            display: flex;
+            justify-content: space-between;
+        }
+        .inv-item:last-child { border-bottom: none; }
+        .case-button {
+            background: linear-gradient(135deg, #5288c1, #3a6ea5);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 20px;
+            width: 100%;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(82, 136, 193, 0.4);
+            transition: transform 0.1s;
+            margin-top: auto;
+        }
+        .case-button:active {
+            transform: scale(0.98);
+        }
+        .case-button.disabled {
+            background: #444;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+        /* Цвета редкости */
+        .r-gray { color: var(--gray); }
+        .r-blue { color: var(--blue); }
+        .r-purple { color: var(--purple); }
+        .r-orange { color: var(--orange); }
+        .r-red { color: var(--red); }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>Баланс:</div>
+        <div class="balance" id="balance">50 000 ₽</div>
+    </div>
+
+    <div class="inventory">
+        <div class="inventory-title">Ваш гараж</div>
+        <div id="inventory-list">
+            <div style="color: gray; font-size: 14px;">Пока пусто...</div>
+        </div>
+    </div>
+
+    <button class="case-button" id="open-btn" onclick="openCase()">
+        Открыть кейс (10 000 ₽)
+    </button>
+
+    <script>
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Разворачиваем на весь экран
+        tg.setHeaderColor('#17212b');
+
+        // Данные игрока
+        let playerBalance = 50000;
+        const casePrice = 10000;
+        let inventory = [];
+
+        // Конфигурация кейса (по вашей таблице, но адаптированная под один кейс)
+        // Шансы суммируются: 50% серый, 30% синий, 15% фиолетовый, 4.5% оранжевый, 0.5% красный
+        const casePool = [
+            // 1. Ржавый гараж (Хлам)
+            { name: "Старый Минск", rarity: "Серый", color: "r-gray", chance: 15 },
+            { name: "Убитый ИЖ", rarity: "Серый", color: "r-gray", chance: 15 },
+            { name: "Рама без колес", rarity: "Серый", color: "r-gray", chance: 20 },
+            // 2. Б/У Рынок
+            { name: "Восход", rarity: "Синий", color: "r-blue", chance: 10 },
+            { name: "Японская чесотка", rarity: "Синий", color: "r-blue", chance: 10 },
+            { name: "Урал с коляской", rarity: "Синий", color: "r-blue", chance: 10 },
+            // 3. Городской
+            { name: "Yamaha YBR", rarity: "Фиолетовый", color: "r-purple", chance: 5 },
+            { name: "Honda CB400", rarity: "Фиолетовый", color: "r-purple", chance: 5 },
+            { name: "Старый Harley Iron", rarity: "Фиолетовый", color: "r-purple", chance: 5 },
+            // 4. Тюнинг-ателье (Кастом)
+            { name: "Чоппер", rarity: "Оранжевый", color: "r-orange", chance: 1.5 },
+            { name: "Cafe Racer", rarity: "Оранжевый", color: "r-orange", chance: 1.5 },
+            { name: "Нейкед с обвесом", rarity: "Оранжевый", color: "r-orange", chance: 1.5 },
+            // 5. Спорткар (Спорт)
+            { name: "Yamaha R1", rarity: "Красный", color: "r-red", chance: 0.2 },
+            { name: "BMW S1000RR", rarity: "Красный", color: "r-red", chance: 0.2 },
+            { name: "Ducati Panigale", rarity: "Красный", color: "r-red", chance: 0.1 }
+        ];
+
+        // Обновление UI
+        function updateUI() {
+            document.getElementById('balance').innerText = playerBalance.toLocaleString('ru-RU') + ' ₽';
+            
+            const btn = document.getElementById('open-btn');
+            if (playerBalance < casePrice) {
+                btn.classList.add('disabled');
+                btn.innerText = "Недостаточно средств";
+            } else {
+                btn.classList.remove('disabled');
+                btn.innerText = `Открыть кейс (${casePrice.toLocaleString('ru-RU')} ₽)`;
+            }
+
+            const invList = document.getElementById('inventory-list');
+            if (inventory.length === 0) {
+                invList.innerHTML = '<div style="color: gray; font-size: 14px;">Пока пусто...</div>';
+            } else {
+                invList.innerHTML = inventory.map(item => `
+                    <div class="inv-item">
+                        <span class="${item.color}">${item.name}</span>
+                        <span class="${item.color}" style="font-size: 12px;">${item.rarity}</span>
+                    </div>
+                `).reverse().join(''); // Новые сверху
+            }
+        }
+
+        // Логика рулетки (Взвешенный рандом)
+        function getRandomItem() {
+            const totalChance = casePool.reduce((sum, item) => sum + item.chance, 0);
+            let random = Math.random() * totalChance;
+            
+            for (let item of casePool) {
+                if (random < item.chance) {
+                    return item;
+                }
+                random -= item.chance;
+            }
+            return casePool[0]; // Фолбэк
+        }
+
+        // Открытие кейса
+        function openCase() {
+            if (playerBalance < casePrice) return;
+
+            // Списываем деньги
+            playerBalance -= casePrice;
+            updateUI();
+
+            // Эмуляция задержки (для анимации)
+            const btn = document.getElementById('open-btn');
+            btn.innerText = "Крутим барабан...";
+            btn.disabled = true;
+
+            setTimeout(() => {
+                const winItem = getRandomItem();
+                inventory.push(winItem);
+                updateUI();
+                btn.disabled = false;
+
+                // Показываем результат через нативный попап Телеграма
+                tg.showPopup({
+                    title: 'Вы выиграли!',
+                    message: `Вам выпал мотоцикл:\n${winItem.name} (${winItem.rarity})`,
+                    buttons: [{ type: 'ok' }]
+                });
+
+                // Вибрация (если поддерживается)
+                if (tg.HapticFeedback) {
+                    tg.HapticFeedback.notificationOccurred(winItem.rarity === 'Красный' ? 'success' : 'warning');
+                }
+
+            }, 1000);
+        }
+
+        // Запуск
+        updateUI();
+    </script>
+</body>
+</html>
