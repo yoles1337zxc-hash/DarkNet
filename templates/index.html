@@ -15,6 +15,8 @@
             --green: #30d158;
             --border: #2c2c2e;
             --gold: #ffd60a;
+            --purple: #a855f7;
+            --red: #ff453a;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background: var(--bg); color: var(--text); padding-bottom: 80px; -webkit-tap-highlight-color: transparent; }
@@ -43,14 +45,21 @@
         .chances { display: flex; gap: 6px; flex-wrap: wrap; }
         .badge { font-size: 11px; padding: 2px 6px; border-radius: 6px; display: flex; align-items: center; gap: 4px; background: #2c2c2e; color: #ccc; }
         .dot { width: 6px; height: 6px; border-radius: 50%; }
-        .dot-D { background: #8e8e93; } .dot-C { background: var(--blue); } .dot-B { background: #a855f7; } .dot-A { background: var(--gold); } .dot-S { background: #ff453a; }
+        .dot-D { background: #8e8e93; } .dot-C { background: var(--blue); } .dot-B { background: var(--purple); } .dot-A { background: var(--gold); } .dot-S { background: var(--red); }
         .case-price { font-weight: bold; font-size: 14px; white-space: nowrap; }
 
+        /* Генератор номеров */
+        .plate-generator { background: var(--card-bg); border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px; }
+        .plate-preview { background: #e5e5e5; color: #000; border: 3px solid #fff; border-radius: 8px; padding: 15px; font-size: 28px; font-weight: bold; letter-spacing: 2px; margin: 15px 0; position: relative; display: inline-block; min-width: 200px; font-family: monospace; }
+        .plate-region { position: absolute; right: 5px; bottom: 5px; font-size: 12px; display: flex; flex-direction: column; align-items: center; }
+        .plate-region img { width: 15px; margin-top: 2px; }
+        .btn-generate { width: 100%; padding: 15px; background: var(--blue); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 10px; }
+        
         /* Гараж */
         .inventory-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .inv-item { background: var(--card-bg); border-radius: 12px; padding: 15px; position: relative; border: 1px solid var(--border); }
         .inv-rarity { position: absolute; top: 10px; left: 10px; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; }
-        .inv-rarity.D { background: #8e8e93; } .inv-rarity.C { background: var(--blue); } .inv-rarity.B { background: #a855f7; } .inv-rarity.A { background: var(--gold); color: black; } .inv-rarity.S { background: #ff453a; }
+        .inv-rarity.D { background: #8e8e93; } .inv-rarity.C { background: var(--blue); } .inv-rarity.B { background: var(--purple); } .inv-rarity.A { background: var(--gold); color: black; } .inv-rarity.S { background: var(--red); }
         .inv-icon { font-size: 40px; text-align: center; margin: 15px 0; }
         .inv-name { font-size: 14px; font-weight: 600; text-align: center; }
         .inv-income { font-size: 12px; color: var(--green); text-align: center; margin-top: 5px; }
@@ -61,6 +70,14 @@
         .craft-row:last-child { border-bottom: none; }
         .btn-craft { background: var(--blue); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; }
         .btn-craft:disabled { background: #333; color: #777; }
+
+        /* Профиль */
+        .profile-card { background: var(--card-bg); border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 15px; }
+        .avatar { width: 80px; height: 80px; border-radius: 50%; background: #333; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .stat-box { background: var(--card-bg); padding: 15px; border-radius: 12px; text-align: center; }
+        .stat-val { font-size: 20px; font-weight: bold; }
+        .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
 
         /* Модальное окно */
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); }
@@ -73,15 +90,14 @@
         .result-rarity { font-size: 14px; margin-top: 5px; }
 
         /* Нижнее меню */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #1c1c1e; display: flex; padding: 10px 15px; gap: 10px; border-top: 1px solid var(--border); z-index: 100; }
-        .nav-btn { flex: 1; background: none; border: none; color: var(--text-muted); font-size: 12px; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 8px; border-radius: 10px; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #1c1c1e; display: flex; padding: 10px 5px; gap: 5px; border-top: 1px solid var(--border); z-index: 100; }
+        .nav-btn { flex: 1; background: none; border: none; color: var(--text-muted); font-size: 10px; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 8px; border-radius: 10px; }
         .nav-btn.active { color: var(--blue); background: rgba(10, 132, 255, 0.1); }
         .nav-btn span { font-size: 20px; }
     </style>
 </head>
 <body>
 
-    <!-- Шапка -->
     <div class="header">
         <div class="title" style="font-size: 20px; margin: 0;">DROPZONE | Мото</div>
         <div class="balance">
@@ -89,22 +105,75 @@
         </div>
     </div>
 
-    <!-- СТРАНИЦА: КЕЙСЫ -->
+    <!-- КЕЙСЫ -->
     <div id="page-cases" class="page active">
         <div class="tabs">
-            <button class="tab active" onclick="switchCaseTab('bike', this)">🏍️ Мотоциклы</button>
+            <button class="tab active" onclick="switchCaseTab('bike', this)">🏍️ Мото</button>
             <button class="tab" onclick="switchCaseTab('part', this)">🔧 Запчасти</button>
+            <button class="tab" onclick="switchCaseTab('plate', this)">🪪 Номера</button>
         </div>
         
-        <div id="case-list-bike" class="case-list">
-            <!-- Заполняется через JS -->
-        </div>
-        <div id="case-list-part" class="case-list" style="display: none;">
-            <!-- Заполняется через JS -->
+        <div id="case-list-bike" class="case-list"></div>
+        <div id="case-list-part" class="case-list" style="display: none;"></div>
+        
+        <!-- Генератор номеров -->
+        <div id="case-list-plate" style="display: none;">
+            <div class="plate-generator">
+                <div class="title" style="font-size: 18px;">Генерация номера</div>
+                <div class="plate-preview" id="plate-preview">
+                    ---
+                    <div class="plate-region">RUS</div>
+                </div>
+                <button class="btn-generate" onclick="generatePlate()">Сгенерировать • 32 000 ₽</button>
+            </div>
+            
+            <div class="case-list">
+                <div class="case-item">
+                    <div class="case-info">
+                        <div class="case-img">🪪</div>
+                        <div class="case-details">
+                            <h3>Обычная</h3>
+                            <div class="chances">
+                                <span class="badge"><span class="dot dot-D"></span>84,39%</span>
+                                <span class="badge"><span class="dot dot-C"></span>15,6%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="case-price">32 000 ₽</div>
+                </div>
+                <div class="case-item">
+                    <div class="case-info">
+                        <div class="case-img">🏷️</div>
+                        <div class="case-details">
+                            <h3>Улучшенная</h3>
+                            <div class="chances">
+                                <span class="badge"><span class="dot dot-C"></span>53,8%</span>
+                                <span class="badge"><span class="dot dot-B"></span>44%</span>
+                                <span class="badge"><span class="dot dot-A"></span>2,2%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="case-price">225 000 ₽</div>
+                </div>
+                <div class="case-item">
+                    <div class="case-info">
+                        <div class="case-img">✨</div>
+                        <div class="case-details">
+                            <h3>Красивая</h3>
+                            <div class="chances">
+                                <span class="badge"><span class="dot dot-B"></span>30%</span>
+                                <span class="badge"><span class="dot dot-A"></span>68,8%</span>
+                                <span class="badge"><span class="dot dot-S"></span>1,199%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="case-price">1 600 000 ₽</div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- СТРАНИЦА: ГАРАЖ -->
+    <!-- ГАРАЖ -->
     <div id="page-garage" class="page">
         <div class="title">Гараж</div>
         <div style="background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 15px;">
@@ -115,22 +184,50 @@
         </div>
         
         <div style="font-size: 16px; font-weight: 600; margin-bottom: 10px;">Мотоциклы (<span id="bikes-count">0</span>)</div>
-        <div id="garage-grid" class="inventory-grid">
-            <!-- Заполняется через JS -->
-        </div>
+        <div id="garage-grid" class="inventory-grid"></div>
+
+        <div style="font-size: 16px; font-weight: 600; margin-bottom: 10px; margin-top: 20px;">Номера (<span id="plates-count">0</span>)</div>
+        <div id="plates-grid" class="inventory-grid"></div>
     </div>
 
-    <!-- СТРАНИЦА: МАСТЕРСКАЯ -->
+    <!-- МАСТЕРСКАЯ -->
     <div id="page-craft" class="page">
         <div class="title">Мастерская</div>
         <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 15px;">Объединяйте 3 запчасти одной редкости, чтобы получить 1 запчасть рангом выше.</p>
+        <div id="craft-list" class="craft-section"></div>
+    </div>
+
+    <!-- ПРОФИЛЬ -->
+    <div id="page-profile" class="page">
+        <div class="title">Профиль</div>
         
-        <div id="craft-list" class="craft-section">
-            <!-- Заполняется через JS -->
+        <div class="profile-card">
+            <div class="avatar">👤</div>
+            <div style="font-size: 20px; font-weight: bold;" id="profile-name">Игрок</div>
+            <div style="color: var(--text-muted); font-size: 14px;" id="profile-id">ID: ...</div>
+        </div>
+
+        <div class="stat-grid">
+            <div class="stat-box">
+                <div class="stat-val" id="stat-bikes">0</div>
+                <div class="stat-label">в гараже</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-val" id="stat-collection">0/7</div>
+                <div class="stat-label">коллекция</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-val" id="stat-plates">0</div>
+                <div class="stat-label">номеров</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-val" id="stat-cases">0</div>
+                <div class="stat-label">кейсов</div>
+            </div>
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО ВЫПАДЕНИЯ -->
+    <!-- МОДАЛЬНОЕ ОКНО -->
     <div id="modal-result" class="modal-overlay">
         <div class="modal-content">
             <button class="modal-close" onclick="closeModal()">✕</button>
@@ -146,15 +243,10 @@
 
     <!-- НИЖНЕЕ МЕНЮ -->
     <div class="bottom-nav">
-        <button class="nav-btn active" onclick="switchPage('cases', this)">
-            <span>🎁</span> Кейсы
-        </button>
-        <button class="nav-btn" onclick="switchPage('garage', this)">
-            <span>🏠</span> Гараж
-        </button>
-        <button class="nav-btn" onclick="switchPage('craft', this)">
-            <span>🛠️</span> Мастерская
-        </button>
+        <button class="nav-btn active" onclick="switchPage('cases', this)"><span>🎁</span> Кейсы</button>
+        <button class="nav-btn" onclick="switchPage('garage', this)"><span>🏠</span> Гараж</button>
+        <button class="nav-btn" onclick="switchPage('craft', this)"><span>🛠️</span> Мастерская</button>
+        <button class="nav-btn" onclick="switchPage('profile', this)"><span>👤</span> Профиль</button>
     </div>
 
     <script>
@@ -164,10 +256,10 @@
         tg.setHeaderColor('#000000');
         tg.setBackgroundColor('#000000');
 
-        const userId = tg.initDataUnsafe?.user?.id || 1; // 1 - для теста в браузере
+        const userId = tg.initDataUnsafe?.user?.id || 1;
+        const userName = tg.initDataUnsafe?.user?.first_name || "Тестер";
         let userData = { balance: 0, inventory: [] };
 
-        // Данные с бэкенда (для отрисовки)
         const BIKES_DATA = [
             { name: "Ржавый гараж", rarity: "D", price: 50000, chance: 99.6 },
             { name: "Поддержанные", rarity: "D", price: 150000, chance: 95.5 },
@@ -185,23 +277,24 @@
             { name: "Секретный цех", rarity: "S", chance: 9.97 }
         ];
 
-        // --- ЗАГРУЗКА ДАННЫХ ---
         async function loadUser() {
             try {
                 const res = await fetch(`/api/user/${userId}`);
                 userData = await res.json();
                 updateUI();
-            } catch (e) {
-                console.error("Ошибка загрузки:", e);
-            }
+            } catch (e) { console.error("Ошибка загрузки:", e); }
         }
 
-        // --- ОТРИСОВКА ИНТЕРФЕЙСА ---
         function updateUI() {
             document.getElementById('balance-display').innerText = userData.balance.toLocaleString('ru-RU');
+            document.getElementById('profile-name').innerText = userName;
+            document.getElementById('profile-id').innerText = `ID: ${userId}`;
             
-            // Гараж
             const bikes = userData.inventory.filter(i => i.type === 'bike');
+            const plates = userData.inventory.filter(i => i.type === 'plate');
+            const parts = userData.inventory.filter(i => i.type === 'part');
+
+            // Гараж
             document.getElementById('bikes-count').innerText = bikes.length;
             const totalIncome = bikes.reduce((acc, b) => acc + (b.income || 0), 0);
             document.getElementById('garage-income').innerText = `${totalIncome.toLocaleString('ru-RU')} ₽ / ч`;
@@ -219,11 +312,28 @@
                 `;
             });
 
-            // Мастерская (считаем запчасти по редкости)
-            const parts = userData.inventory.filter(i => i.type === 'part');
+            // Номера
+            document.getElementById('plates-count').innerText = plates.length;
+            const platesGrid = document.getElementById('plates-grid');
+            platesGrid.innerHTML = '';
+            plates.forEach(plate => {
+                platesGrid.innerHTML += `
+                    <div class="inv-item">
+                        <div class="inv-rarity ${plate.rarity}">${plate.rarity}</div>
+                        <div class="inv-icon" style="font-size: 20px; font-family: monospace; background:#fff; color:#000; border-radius:4px; padding:5px;">${plate.name.replace('Номер ', '')}</div>
+                        <div class="inv-name" style="font-size:12px; margin-top:5px;">${plate.name.split(' ')[0]}</div>
+                    </div>
+                `;
+            });
+
+            // Статистика
+            document.getElementById('stat-bikes').innerText = bikes.length;
+            document.getElementById('stat-plates').innerText = plates.length;
+            document.getElementById('stat-collection').innerText = `${new Set(bikes.map(b => b.name)).size}/7`;
+
+            // Мастерская
             const craftList = document.getElementById('craft-list');
             craftList.innerHTML = '';
-            
             ['D', 'C', 'B', 'A'].forEach(rarity => {
                 const count = parts.filter(p => p.rarity === rarity).length;
                 const canCraft = count >= 3;
@@ -233,15 +343,12 @@
                             <div style="font-weight: bold;">Редкость ${rarity}</div>
                             <div style="font-size: 12px; color: var(--text-muted);">В наличии: ${count} шт.</div>
                         </div>
-                        <button class="btn-craft" onclick="craftItem('${rarity}')" ${canCraft ? '' : 'disabled'}>
-                            Скрафтить
-                        </button>
+                        <button class="btn-craft" onclick="craftItem('${rarity}')" ${canCraft ? '' : 'disabled'}>Скрафтить</button>
                     </div>
                 `;
             });
         }
 
-        // --- ЛОГИКА КЕЙСОВ ---
         function renderCases() {
             const bikeList = document.getElementById('case-list-bike');
             bikeList.innerHTML = '';
@@ -252,9 +359,7 @@
                             <div class="case-img">🏍️</div>
                             <div class="case-details">
                                 <h3>${item.name}</h3>
-                                <div class="chances">
-                                    <span class="badge"><span class="dot dot-${item.rarity}"></span>${item.chance}%</span>
-                                </div>
+                                <div class="chances"><span class="badge"><span class="dot dot-${item.rarity}"></span>${item.chance}%</span></div>
                             </div>
                         </div>
                         <div class="case-price">${(item.price).toLocaleString('ru-RU')} ₽</div>
@@ -271,9 +376,7 @@
                             <div class="case-img">🔧</div>
                             <div class="case-details">
                                 <h3>${item.name}</h3>
-                                <div class="chances">
-                                    <span class="badge"><span class="dot dot-${item.rarity}"></span>${item.chance}%</span>
-                                </div>
+                                <div class="chances"><span class="badge"><span class="dot dot-${item.rarity}"></span>${item.chance}%</span></div>
                             </div>
                         </div>
                         <div class="case-price">14 000 ₽</div>
@@ -287,9 +390,29 @@
             btn.classList.add('active');
             document.getElementById('case-list-bike').style.display = type === 'bike' ? 'flex' : 'none';
             document.getElementById('case-list-part').style.display = type === 'part' ? 'flex' : 'none';
+            document.getElementById('case-list-plate').style.display = type === 'plate' ? 'block' : 'none';
         }
 
-        // --- ОТПРАВКА ЗАПРОСОВ ---
+        async function generatePlate() {
+            try {
+                const res = await fetch(`/api/user/${userId}/case`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ case_type: 'plate' })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    tg.HapticFeedback.notificationOccurred('success');
+                    document.getElementById('plate-preview').innerHTML = `${data.item.name.replace('Номер ', '')}<div class="plate-region">RUS</div>`;
+                    showResult(data.item);
+                    loadUser();
+                } else {
+                    tg.HapticFeedback.notificationOccurred('error');
+                    alert(data.error);
+                }
+            } catch (e) { alert("Ошибка соединения"); }
+        }
+
         async function openCase(type) {
             try {
                 const res = await fetch(`/api/user/${userId}/case`, {
@@ -298,18 +421,15 @@
                     body: JSON.stringify({ case_type: type })
                 });
                 const data = await res.json();
-                
                 if (res.ok) {
                     tg.HapticFeedback.notificationOccurred('success');
                     showResult(data.item);
-                    loadUser(); // Обновляем баланс и инвентарь
+                    loadUser();
                 } else {
                     tg.HapticFeedback.notificationOccurred('error');
                     alert(data.error);
                 }
-            } catch (e) {
-                alert("Ошибка соединения");
-            }
+            } catch (e) { alert("Ошибка соединения"); }
         }
 
         async function craftItem(rarity) {
@@ -320,29 +440,22 @@
                     body: JSON.stringify({ rarity: rarity })
                 });
                 const data = await res.json();
-                
                 if (res.ok) {
                     tg.HapticFeedback.notificationOccurred('success');
                     alert(data.message);
                     loadUser();
-                } else {
-                    alert(data.error);
-                }
-            } catch (e) {
-                alert("Ошибка соединения");
-            }
+                } else { alert(data.error); }
+            } catch (e) { alert("Ошибка соединения"); }
         }
 
         async function collectIncome() {
-            // В бэкенде это реализовано при получении данных, просто обновляем UI
             tg.HapticFeedback.notificationOccurred('success');
             loadUser();
             alert("Доход собран!");
         }
 
-        // --- МОДАЛКА ---
         function showResult(item) {
-            document.getElementById('result-icon').innerText = item.rarity === 'S' ? '👑' : '🏍️';
+            document.getElementById('result-icon').innerText = item.rarity === 'S' ? '👑' : (item.name.includes('Номер') ? '🪪' : '🏍️');
             document.getElementById('result-name').innerText = item.name;
             document.getElementById('result-rarity').innerText = `Редкость: ${item.rarity}`;
             document.getElementById('result-rarity').className = `result-rarity dot-${item.rarity}`;
@@ -353,7 +466,6 @@
             document.getElementById('modal-result').classList.remove('active');
         }
 
-        // --- НАВИГАЦИЯ ---
         function switchPage(pageId, btn) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -362,10 +474,9 @@
             tg.HapticFeedback.selectionChanged();
         }
 
-        // --- СТАРТ ---
         renderCases();
         loadUser();
-        setInterval(loadUser, 30000); // Автообновление каждые 30 сек
+        setInterval(loadUser, 30000);
     </script>
 </body>
 </html>
