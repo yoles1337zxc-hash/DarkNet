@@ -11,7 +11,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from dotenv import load_dotenv
-
+print("BOT_TOKEN set:", bool(os.getenv("BOT_TOKEN")))
 load_dotenv()
 
 BOT_TOKEN = ("8986372455:AAEqZjMO8rKRbSyK_RdjbGFpP1wa7OJqdYI")
