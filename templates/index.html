@@ -1,236 +1,371 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Мото-Кейс</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    /* Базовые стили в стиле Telegram (темная тема) */
-    :root {
-      --bg-color: var(--tg-theme-bg-color, #17212b);
-      --text-color: var(--tg-theme-text-color, #ffffff);
-      --hint-color: var(--tg-theme-hint-color, #708499);
-      --card-bg: #1f2937; /* Темно-серый фон карточек */
-      --border-color: #2d3748;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DROPZONE | Мото</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg: #000000;
+            --card-bg: #1c1c1e;
+            --text: #ffffff;
+            --text-muted: #8e8e93;
+            --blue: #0a84ff;
+            --green: #30d158;
+            --border: #2c2c2e;
+            --gold: #ffd60a;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: var(--bg); color: var(--text); padding-bottom: 80px; -webkit-tap-highlight-color: transparent; }
+        
+        /* Шапка */
+        .header { padding: 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 100; }
+        .balance { background: #1c1c1e; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 5px; }
+        
+        /* Контент */
+        .page { display: none; padding: 15px; animation: fadeIn 0.2s ease; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      margin: 0;
-      padding: 10px;
-      padding-bottom: 30px;
-    }
+        .title { font-size: 24px; font-weight: 800; margin-bottom: 15px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab { flex: 1; padding: 12px; border-radius: 12px; background: var(--card-bg); text-align: center; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: 0.2s; border: none; outline: none; }
+        .tab.active { background: var(--blue); color: white; }
 
-    .header-text {
-      color: var(--hint-color);
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin: 10px 0 15px 15px;
-    }
+        /* Кейсы */
+        .case-list { display: flex; flex-direction: column; gap: 10px; }
+        .case-item { background: var(--card-bg); border-radius: 12px; padding: 15px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: 0.1s; }
+        .case-item:active { transform: scale(0.98); }
+        .case-info { display: flex; align-items: center; gap: 15px; }
+        .case-img { font-size: 30px; }
+        .case-details h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .chances { display: flex; gap: 6px; flex-wrap: wrap; }
+        .badge { font-size: 11px; padding: 2px 6px; border-radius: 6px; display: flex; align-items: center; gap: 4px; background: #2c2c2e; color: #ccc; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; }
+        .dot-D { background: #8e8e93; } .dot-C { background: var(--blue); } .dot-B { background: #a855f7; } .dot-A { background: var(--gold); } .dot-S { background: #ff453a; }
+        .case-price { font-weight: bold; font-size: 14px; white-space: nowrap; }
 
-    /* Контейнер списка */
-    .list-container {
-      background-color: var(--card-bg);
-      border-radius: 12px;
-      overflow: hidden;
-    }
+        /* Гараж */
+        .inventory-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .inv-item { background: var(--card-bg); border-radius: 12px; padding: 15px; position: relative; border: 1px solid var(--border); }
+        .inv-rarity { position: absolute; top: 10px; left: 10px; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; }
+        .inv-rarity.D { background: #8e8e93; } .inv-rarity.C { background: var(--blue); } .inv-rarity.B { background: #a855f7; } .inv-rarity.A { background: var(--gold); color: black; } .inv-rarity.S { background: #ff453a; }
+        .inv-icon { font-size: 40px; text-align: center; margin: 15px 0; }
+        .inv-name { font-size: 14px; font-weight: 600; text-align: center; }
+        .inv-income { font-size: 12px; color: var(--green); text-align: center; margin-top: 5px; }
 
-    /* Карточка предмета */
-    .item-card {
-      display: flex;
-      align-items: center;
-      padding: 15px;
-      border-bottom: 1px solid var(--border-color);
-    }
+        /* Мастерская */
+        .craft-section { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+        .craft-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .craft-row:last-child { border-bottom: none; }
+        .btn-craft { background: var(--blue); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        .btn-craft:disabled { background: #333; color: #777; }
 
-    .item-card:last-child {
-      border-bottom: none;
-    }
+        /* Модальное окно */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: var(--card-bg); width: 90%; max-width: 400px; border-radius: 20px; padding: 20px; text-align: center; position: relative; }
+        .modal-close { position: absolute; top: 15px; right: 15px; background: #333; border: none; color: white; width: 30px; height: 30px; border-radius: 50%; font-size: 16px; cursor: pointer; }
+        .spin-result { margin: 20px 0; }
+        .result-icon { font-size: 60px; margin-bottom: 10px; }
+        .result-name { font-size: 20px; font-weight: bold; }
+        .result-rarity { font-size: 14px; margin-top: 5px; }
 
-    .item-icon {
-      font-size: 32px;
-      margin-right: 15px;
-      width: 40px;
-      text-align: center;
-    }
-
-    .item-info {
-      flex: 1;
-    }
-
-    .item-name {
-      font-size: 16px;
-      font-weight: 500;
-      margin-bottom: 8px;
-    }
-
-    /* Блок с шансами */
-    .chances {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .chance-badge {
-      display: inline-flex;
-      align-items: center;
-      background-color: #374151;
-      border-radius: 12px;
-      padding: 2px 8px;
-      font-size: 12px;
-      color: #d1d5db;
-    }
-
-    .dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      margin-right: 5px;
-    }
-
-    /* Цвета точек для разных редкостей */
-    .dot-gray { background-color: #9ca3af; }
-    .dot-blue { background-color: #3b82f6; }
-    .dot-purple { background-color: #a855f7; }
-    .dot-orange { background-color: #f59e0b; }
-    .dot-red { background-color: #ef4444; }
-
-    .item-price {
-      font-size: 14px;
-      color: var(--text-color);
-      font-weight: 500;
-      text-align: right;
-      white-space: nowrap;
-      margin-left: 10px;
-    }
-  </style>
+        /* Нижнее меню */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #1c1c1e; display: flex; padding: 10px 15px; gap: 10px; border-top: 1px solid var(--border); z-index: 100; }
+        .nav-btn { flex: 1; background: none; border: none; color: var(--text-muted); font-size: 12px; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 8px; border-radius: 10px; }
+        .nav-btn.active { color: var(--blue); background: rgba(10, 132, 255, 0.1); }
+        .nav-btn span { font-size: 20px; }
+    </style>
 </head>
 <body>
 
-  <div class="header-text">По редкости</div>
-
-  <div class="list-container">
-    
-    <!-- 1. Ржавый гараж -->
-    <div class="item-card">
-      <div class="item-icon">🛵</div>
-      <div class="item-info">
-        <div class="item-name">Ржавый гараж</div>
-        <div class="chances">
-          <span class="chance-badge"><span class="dot dot-gray"></span>99,6%</span>
-          <span class="chance-badge"><span class="dot dot-blue"></span>0,35%</span>
-          <span class="chance-badge"><span class="dot dot-purple"></span>0,02%</span>
+    <!-- Шапка -->
+    <div class="header">
+        <div class="title" style="font-size: 20px; margin: 0;">DROPZONE | Мото</div>
+        <div class="balance">
+            <span>💰</span> <span id="balance-display">0</span> ₽
         </div>
-      </div>
-      <div class="item-price">50 000 ₽</div>
     </div>
 
-    <!-- 2. Поддержанные -->
-    <div class="item-card">
-      <div class="item-icon">🛺</div>
-      <div class="item-info">
-        <div class="item-name">Поддержанные</div>
-        <div class="chances">
-          <span class="chance-badge"><span class="dot dot-gray"></span>95,5%</span>
-          <span class="chance-badge"><span class="dot dot-blue"></span>4,1%</span>
-          <span class="chance-badge"><span class="dot dot-purple"></span>0,34%</span>
-          <span class="chance-badge"><span class="dot dot-orange"></span>0,04%</span>
+    <!-- СТРАНИЦА: КЕЙСЫ -->
+    <div id="page-cases" class="page active">
+        <div class="tabs">
+            <button class="tab active" onclick="switchCaseTab('bike', this)">🏍️ Мотоциклы</button>
+            <button class="tab" onclick="switchCaseTab('part', this)">🔧 Запчасти</button>
         </div>
-      </div>
-      <div class="item-price">150 000 ₽</div>
+        
+        <div id="case-list-bike" class="case-list">
+            <!-- Заполняется через JS -->
+        </div>
+        <div id="case-list-part" class="case-list" style="display: none;">
+            <!-- Заполняется через JS -->
+        </div>
     </div>
 
-    <!-- 3. Городской -->
-    <div class="item-card">
-      <div class="item-icon">🏙️</div>
-      <div class="item-info">
-        <div class="item-name">Городской</div>
-        <div class="chances">
-          <span class="chance-badge"><span class="dot dot-gray"></span>85,3%</span>
-          <span class="chance-badge"><span class="dot dot-blue"></span>12,2%</span>
-          <span class="chance-badge"><span class="dot dot-purple"></span>2,2%</span>
-          <span class="chance-badge"><span class="dot dot-orange"></span>0,36%</span>
+    <!-- СТРАНИЦА: ГАРАЖ -->
+    <div id="page-garage" class="page">
+        <div class="title">Гараж</div>
+        <div style="background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 15px;">
+            <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 5px;">Доход гаража (в час)</div>
+            <div style="font-size: 24px; font-weight: bold;" id="garage-income">0 ₽ / ч</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">Копится до 4 часов. Заберите доход!</div>
+            <button onclick="collectIncome()" style="width: 100%; padding: 12px; background: var(--blue); color: white; border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; font-size: 16px;">Забрать</button>
         </div>
-      </div>
-      <div class="item-price">500 000 ₽</div>
+        
+        <div style="font-size: 16px; font-weight: 600; margin-bottom: 10px;">Мотоциклы (<span id="bikes-count">0</span>)</div>
+        <div id="garage-grid" class="inventory-grid">
+            <!-- Заполняется через JS -->
+        </div>
     </div>
 
-    <!-- 4. Тюнинг-ателье -->
-    <div class="item-card">
-      <div class="item-icon">🔧</div>
-      <div class="item-info">
-        <div class="item-name">Тюнинг-ателье</div>
-        <div class="chances">
-          <span class="chance-badge"><span class="dot dot-gray"></span>37,8%</span>
-          <span class="chance-badge"><span class="dot dot-blue"></span>53,9%</span>
-          <span class="chance-badge"><span class="dot dot-purple"></span>7,4%</span>
-          <span class="chance-badge"><span class="dot dot-orange"></span>0,92%</span>
-          <span class="chance-badge"><span class="dot dot-red"></span>0,02%</span>
+    <!-- СТРАНИЦА: МАСТЕРСКАЯ -->
+    <div id="page-craft" class="page">
+        <div class="title">Мастерская</div>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 15px;">Объединяйте 3 запчасти одной редкости, чтобы получить 1 запчасть рангом выше.</p>
+        
+        <div id="craft-list" class="craft-section">
+            <!-- Заполняется через JS -->
         </div>
-      </div>
-      <div class="item-price">1,2 млн ₽</div>
     </div>
 
-    <!-- 5. Спорткар -->
-    <div class="item-card">
-      <div class="item-icon">🏁</div>
-      <div class="item-info">
-        <div class="item-name">Спортбайк</div>
-        <div class="chances">
-          <span class="chance-badge"><span class="dot dot-blue"></span>67,0%</span>
-          <span class="chance-badge"><span class="dot dot-purple"></span>27,4%</span>
-          <span class="chance-badge"><span class="dot dot-orange"></span>5,5%</span>
-          <span class="chance-badge"><span class="dot dot-red"></span>0,17%</span>
+    <!-- МОДАЛЬНОЕ ОКНО ВЫПАДЕНИЯ -->
+    <div id="modal-result" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">✕</button>
+            <h2>Вы выбили!</h2>
+            <div class="spin-result">
+                <div id="result-icon" class="result-icon">🏍️</div>
+                <div id="result-name" class="result-name">Название</div>
+                <div id="result-rarity" class="result-rarity">D</div>
+            </div>
+            <button onclick="closeModal()" style="width: 100%; padding: 12px; background: var(--green); color: black; border: none; border-radius: 10px; font-weight: bold; font-size: 16px;">Забрать</button>
         </div>
-      </div>
-      <div class="item-price">2,5 млн ₽</div>
     </div>
 
-    <!-- 6. Премиум -->
-    <div class="item-card">
-      <div class="item-icon">💎</div>
-      <div class="item-info">
-        <div class="item-name">Премиум</div>
-        <div class="chances">
-          <span class="chance-badge"><span class="dot dot-blue"></span>12,5%</span>
-          <span class="chance-badge"><span class="dot dot-purple"></span>69,4%</span>
-          <span class="chance-badge"><span class="dot dot-orange"></span>17,7%</span>
-          <span class="chance-badge"><span class="dot dot-red"></span>0,44%</span>
-        </div>
-      </div>
-      <div class="item-price">5 млн ₽</div>
+    <!-- НИЖНЕЕ МЕНЮ -->
+    <div class="bottom-nav">
+        <button class="nav-btn active" onclick="switchPage('cases', this)">
+            <span>🎁</span> Кейсы
+        </button>
+        <button class="nav-btn" onclick="switchPage('garage', this)">
+            <span>🏠</span> Гараж
+        </button>
+        <button class="nav-btn" onclick="switchPage('craft', this)">
+            <span>🛠️</span> Мастерская
+        </button>
     </div>
 
-    <!-- 7. Элита -->
-    <div class="item-card">
-      <div class="item-icon">👑</div>
-      <div class="item-info">
-        <div class="item-name">Элита</div>
-        <div class="chances">
-          <span class="chance-badge"><span class="dot dot-purple"></span>56,3%</span>
-          <span class="chance-badge"><span class="dot dot-orange"></span>42,7%</span>
-          <span class="chance-badge"><span class="dot dot-red"></span>1,1%</span>
-        </div>
-      </div>
-      <div class="item-price">8 млн ₽</div>
-    </div>
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        tg.setHeaderColor('#000000');
+        tg.setBackgroundColor('#000000');
 
-  </div>
+        const userId = tg.initDataUnsafe?.user?.id || 1; // 1 - для теста в браузере
+        let userData = { balance: 0, inventory: [] };
 
-  <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
-    
-    // Включаем цветовую схему Telegram
-    document.body.style.backgroundColor = tg.backgroundColor || '#17212b';
+        // Данные с бэкенда (для отрисовки)
+        const BIKES_DATA = [
+            { name: "Ржавый гараж", rarity: "D", price: 50000, chance: 99.6 },
+            { name: "Поддержанные", rarity: "D", price: 150000, chance: 95.5 },
+            { name: "Городской", rarity: "C", price: 500000, chance: 85.3 },
+            { name: "Тюнинг-ателье", rarity: "B", price: 1200000, chance: 37.8 },
+            { name: "Спортбайк", rarity: "A", price: 2500000, chance: 67.0 },
+            { name: "Премиум", rarity: "A", price: 5000000, chance: 12.5 },
+            { name: "Элита", rarity: "S", price: 8000000, chance: 56.3 }
+        ];
+        const PARTS_DATA = [
+            { name: "Разборка", rarity: "D", chance: 85.0 },
+            { name: "Тюнинг-ателье", rarity: "C", chance: 50.0 },
+            { name: "Гоночный цех", rarity: "B", chance: 30.0 },
+            { name: "Заводской тюнинг", rarity: "A", chance: 39.88 },
+            { name: "Секретный цех", rarity: "S", chance: 9.97 }
+        ];
 
-    // Здесь в будущем можно добавить логику получения данных с сервера
-  </script>
+        // --- ЗАГРУЗКА ДАННЫХ ---
+        async function loadUser() {
+            try {
+                const res = await fetch(`/api/user/${userId}`);
+                userData = await res.json();
+                updateUI();
+            } catch (e) {
+                console.error("Ошибка загрузки:", e);
+            }
+        }
+
+        // --- ОТРИСОВКА ИНТЕРФЕЙСА ---
+        function updateUI() {
+            document.getElementById('balance-display').innerText = userData.balance.toLocaleString('ru-RU');
+            
+            // Гараж
+            const bikes = userData.inventory.filter(i => i.type === 'bike');
+            document.getElementById('bikes-count').innerText = bikes.length;
+            const totalIncome = bikes.reduce((acc, b) => acc + (b.income || 0), 0);
+            document.getElementById('garage-income').innerText = `${totalIncome.toLocaleString('ru-RU')} ₽ / ч`;
+
+            const garageGrid = document.getElementById('garage-grid');
+            garageGrid.innerHTML = '';
+            bikes.forEach(bike => {
+                garageGrid.innerHTML += `
+                    <div class="inv-item">
+                        <div class="inv-rarity ${bike.rarity}">${bike.rarity}</div>
+                        <div class="inv-icon">🏍️</div>
+                        <div class="inv-name">${bike.name}</div>
+                        <div class="inv-income">+${bike.income} ₽/ч</div>
+                    </div>
+                `;
+            });
+
+            // Мастерская (считаем запчасти по редкости)
+            const parts = userData.inventory.filter(i => i.type === 'part');
+            const craftList = document.getElementById('craft-list');
+            craftList.innerHTML = '';
+            
+            ['D', 'C', 'B', 'A'].forEach(rarity => {
+                const count = parts.filter(p => p.rarity === rarity).length;
+                const canCraft = count >= 3;
+                craftList.innerHTML += `
+                    <div class="craft-row">
+                        <div>
+                            <div style="font-weight: bold;">Редкость ${rarity}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">В наличии: ${count} шт.</div>
+                        </div>
+                        <button class="btn-craft" onclick="craftItem('${rarity}')" ${canCraft ? '' : 'disabled'}>
+                            Скрафтить
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        // --- ЛОГИКА КЕЙСОВ ---
+        function renderCases() {
+            const bikeList = document.getElementById('case-list-bike');
+            bikeList.innerHTML = '';
+            BIKES_DATA.forEach(item => {
+                bikeList.innerHTML += `
+                    <div class="case-item" onclick="openCase('bike')">
+                        <div class="case-info">
+                            <div class="case-img">🏍️</div>
+                            <div class="case-details">
+                                <h3>${item.name}</h3>
+                                <div class="chances">
+                                    <span class="badge"><span class="dot dot-${item.rarity}"></span>${item.chance}%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="case-price">${(item.price).toLocaleString('ru-RU')} ₽</div>
+                    </div>
+                `;
+            });
+
+            const partList = document.getElementById('case-list-part');
+            partList.innerHTML = '';
+            PARTS_DATA.forEach(item => {
+                partList.innerHTML += `
+                    <div class="case-item" onclick="openCase('part')">
+                        <div class="case-info">
+                            <div class="case-img">🔧</div>
+                            <div class="case-details">
+                                <h3>${item.name}</h3>
+                                <div class="chances">
+                                    <span class="badge"><span class="dot dot-${item.rarity}"></span>${item.chance}%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="case-price">14 000 ₽</div>
+                    </div>
+                `;
+            });
+        }
+
+        function switchCaseTab(type, btn) {
+            document.querySelectorAll('.tabs .tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('case-list-bike').style.display = type === 'bike' ? 'flex' : 'none';
+            document.getElementById('case-list-part').style.display = type === 'part' ? 'flex' : 'none';
+        }
+
+        // --- ОТПРАВКА ЗАПРОСОВ ---
+        async function openCase(type) {
+            try {
+                const res = await fetch(`/api/user/${userId}/case`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ case_type: type })
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    tg.HapticFeedback.notificationOccurred('success');
+                    showResult(data.item);
+                    loadUser(); // Обновляем баланс и инвентарь
+                } else {
+                    tg.HapticFeedback.notificationOccurred('error');
+                    alert(data.error);
+                }
+            } catch (e) {
+                alert("Ошибка соединения");
+            }
+        }
+
+        async function craftItem(rarity) {
+            try {
+                const res = await fetch(`/api/user/${userId}/craft`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rarity: rarity })
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    tg.HapticFeedback.notificationOccurred('success');
+                    alert(data.message);
+                    loadUser();
+                } else {
+                    alert(data.error);
+                }
+            } catch (e) {
+                alert("Ошибка соединения");
+            }
+        }
+
+        async function collectIncome() {
+            // В бэкенде это реализовано при получении данных, просто обновляем UI
+            tg.HapticFeedback.notificationOccurred('success');
+            loadUser();
+            alert("Доход собран!");
+        }
+
+        // --- МОДАЛКА ---
+        function showResult(item) {
+            document.getElementById('result-icon').innerText = item.rarity === 'S' ? '👑' : '🏍️';
+            document.getElementById('result-name').innerText = item.name;
+            document.getElementById('result-rarity').innerText = `Редкость: ${item.rarity}`;
+            document.getElementById('result-rarity').className = `result-rarity dot-${item.rarity}`;
+            document.getElementById('modal-result').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-result').classList.remove('active');
+        }
+
+        // --- НАВИГАЦИЯ ---
+        function switchPage(pageId, btn) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`page-${pageId}`).classList.add('active');
+            btn.classList.add('active');
+            tg.HapticFeedback.selectionChanged();
+        }
+
+        // --- СТАРТ ---
+        renderCases();
+        loadUser();
+        setInterval(loadUser, 30000); // Автообновление каждые 30 сек
+    </script>
 </body>
 </html>
