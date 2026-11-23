@@ -10,6 +10,7 @@ from aiohttp import web
 # --- НАСТРОЙКИ ---
 # Получаем токен из переменных окружения
 BOT_TOKEN = os.environ.get("8986372455:AAEqZjMO8rKRbSyK_RdjbGFpP1wa7OJqdYI")
+BOT_TOKEN = ("8986372455:AAEqZjMO8rKRbSyK_RdjbGFpP1wa7OJqdYI")
 if not BOT_TOKEN:
     logging.warning("ВНИМАНИЕ: Переменная BOT_TOKEN не найдена в окружении! Используется тестовая заглушка.")
     BOT_TOKEN = "123456789:TEST_TOKEN" # Заглушка, чтобы код не падал
