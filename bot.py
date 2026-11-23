@@ -1,12 +1,11 @@
 import asyncio
 import os
-import json
 import time
 import random
 import aiosqlite
 from aiohttp import web
 from aiogram import Bot, Dispatcher, types, F
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandStart
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo, MenuButtonWebApp
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
@@ -17,7 +16,7 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
 PORT = int(os.getenv("PORT", 8080))
-DB_PATH = "dropezone.db"
+DB_PATH = "darknet.db"
 
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
@@ -28,10 +27,13 @@ async def init_db():
         await db.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 user_id INTEGER PRIMARY KEY,
-                balance INTEGER DEFAULT 400000,
+                balance INTEGER DEFAULT 50000,
                 last_collect INTEGER DEFAULT 0,
                 daily_day INTEGER DEFAULT 1,
-                last_daily INTEGER DEFAULT 0
+                last_daily INTEGER DEFAULT 0,
+                referrer_id INTEGER DEFAULT NULL,
+                ref_reward_claimed INTEGER DEFAULT 0,
+                starter_cases INTEGER DEFAULT 3
             )
         """)
         await db.execute("""
@@ -46,40 +48,69 @@ async def init_db():
                 in_garage INTEGER DEFAULT 0
             )
         """)
-        await db.execute("INSERT OR IGNORE INTO users (user_id, balance) VALUES (1, 1000000)")
         await db.commit()
 
-# --- ДАННЫЕ ИГРЫ ---
-BIKES = [
-    {"name": "Минск", "rarity": "D", "price": 50000, "chance": 17.4, "img": "🛵"},
-    {"name": "Восход", "rarity": "D", "price": 60000, "chance": 15.1, "img": "🛵"},
-    {"name": "ИЖ Планета", "rarity": "D", "price": 70000, "chance": 14.2, "img": "🏍️"},
-    {"name": "Ява 350", "rarity": "D", "price": 90000, "chance": 12.2, "img": "🏍️"},
-    {"name": "Урал", "rarity": "D", "price": 110000, "chance": 8.5, "img": "🏍️"},
-    {"name": "Днепр", "rarity": "D", "price": 120000, "chance": 7.85, "img": "🏍️"},
-    {"name": "Honda CB400", "rarity": "C", "price": 350000, "chance": 5.8, "img": "🏍️"},
-    {"name": "Yamaha YBR", "rarity": "C", "price": 400000, "chance": 4.2, "img": "🏍️"},
-    {"name": "Kawasaki Ninja 300", "rarity": "C", "price": 550000, "chance": 3.2, "img": "🏍️"},
-    {"name": "Suzuki GSX-R600", "rarity": "C", "price": 800000, "chance": 2.2, "img": "🏍️"},
-    {"name": "Ducati Monster", "rarity": "C", "price": 1000000, "chance": 1.7, "img": "🏍️"},
-    {"name": "Yamaha R1", "rarity": "B", "price": 1800000, "chance": 0.9, "img": "🏍️"},
-    {"name": "BMW S1000RR", "rarity": "B", "price": 2200000, "chance": 0.6, "img": "🏍️"},
-    {"name": "Kawasaki H2", "rarity": "B", "price": 3000000, "chance": 0.3, "img": "🏍️"},
-    {"name": "Dodge Tomahawk", "rarity": "A", "price": 8000000, "chance": 0.1, "img": "🏍️"},
-    {"name": "MTT Turbine Y2K", "rarity": "A", "price": 10000000, "chance": 0.05, "img": "🏍️"},
-]
+# --- ДАННЫЕ ---
+# Гаражи (категории кейсов)
+GARAGES = {
+    "rusty": {"name": "Ржавый гараж", "price": 14000, "img": "🛖", "rarity": "D"},
+    "used": {"name": "Поддержанные", "price": 14000, "img": "🛵", "rarity": "D"},
+    "city": {"name": "Городской", "price": 50000, "img": "🏙️", "rarity": "C"},
+    "tuning": {"name": "Тюнинг-ателье", "price": 120000, "img": "🔧", "rarity": "B"},
+    "sport": {"name": "Спорткар", "price": 250000, "img": "🏁", "rarity": "A"},
+    "premium": {"name": "Премиум", "price": 500000, "img": "💎", "rarity": "A"},
+    "elite": {"name": "Элита", "price": 800000, "img": "👑", "rarity": "S"}
+}
 
+# Мотоциклы по гаражам
+MOTORCYCLES = {
+    "rusty": [
+        {"name": "Минск", "price": 50000, "chance": 50, "img": "🛵"},
+        {"name": "Восход", "price": 60000, "chance": 30, "img": "🛵"},
+        {"name": "ИЖ Планета", "price": 70000, "chance": 20, "img": "🏍️"},
+    ],
+    "used": [
+        {"name": "Ява 350", "price": 90000, "chance": 40, "img": "🏍️"},
+        {"name": "Урал", "price": 110000, "chance": 35, "img": "🏍️"},
+        {"name": "Днепр", "price": 120000, "chance": 25, "img": "🏍️"},
+    ],
+    "city": [
+        {"name": "Honda CB400", "price": 350000, "chance": 40, "img": "🏍️"},
+        {"name": "Yamaha YBR", "price": 400000, "chance": 35, "img": "🏍️"},
+        {"name": "Kawasaki Ninja 300", "price": 550000, "chance": 25, "img": "🏍️"},
+    ],
+    "tuning": [
+        {"name": "Suzuki GSX-R600", "price": 800000, "chance": 40, "img": "🏍️"},
+        {"name": "Ducati Monster", "price": 1000000, "chance": 35, "img": "🏍️"},
+        {"name": "Yamaha R1", "price": 1800000, "chance": 25, "img": "🏍️"},
+    ],
+    "sport": [
+        {"name": "BMW S1000RR", "price": 2200000, "chance": 40, "img": "🏍️"},
+        {"name": "Kawasaki H2", "price": 3000000, "chance": 35, "img": "🏍️"},
+        {"name": "Dodge Tomahawk", "price": 8000000, "chance": 25, "img": "🏍️"},
+    ],
+    "premium": [
+        {"name": "MTT Turbine Y2K", "price": 10000000, "chance": 50, "img": "🏍️"},
+        {"name": "Lazareth LM847", "price": 12000000, "chance": 30, "img": "🏍️"},
+        {"name": "Dodge Tomahawk S", "price": 15000000, "chance": 20, "img": "🏍️"},
+    ],
+    "elite": [
+        {"name": "Kawasaki Ninja H2R", "price": 20000000, "chance": 50, "img": "🏍️"},
+        {"name": "Ducati Superleggera", "price": 25000000, "chance": 30, "img": "🏍️"},
+        {"name": "Honda RC213V-S", "price": 30000000, "chance": 20, "img": "🏍️"},
+    ]
+}
+
+# Детали
 PARTS = [
-    {"name": "Двигатель", "rarity": "D", "chance": 30.0, "price": 5000, "img": "⚙️"},
-    {"name": "Турбина", "rarity": "D", "chance": 25.0, "price": 5000, "img": "🌀"},
-    {"name": "КПП", "rarity": "C", "chance": 15.0, "price": 15000, "img": "⚙️"},
-    {"name": "Выхлоп", "rarity": "C", "chance": 10.0, "price": 15000, "img": "🔧"},
-    {"name": "Подвеска", "rarity": "B", "chance": 7.5, "price": 40000, "img": "🔩"},
-    {"name": "Диски и шины", "rarity": "B", "chance": 5.0, "price": 40000, "img": "🛞"},
-    {"name": "Тормоза", "rarity": "A", "chance": 3.0, "price": 120000, "img": "🛑"},
-    {"name": "Обвес", "rarity": "A", "chance": 2.0, "price": 120000, "img": "🛡️"},
-    {"name": "Электромотор", "rarity": "S", "chance": 1.0, "price": 500000, "img": "⚡"},
-    {"name": "Батарея", "rarity": "S", "chance": 0.5, "price": 500000, "img": "🔋"},
+    {"name": "Двигатель", "rarity": "D", "chance": 40, "price": 5000},
+    {"name": "Турбина", "rarity": "D", "chance": 30, "price": 5000},
+    {"name": "КПП", "rarity": "C", "chance": 15, "price": 15000},
+    {"name": "Выхлоп", "rarity": "C", "chance": 10, "price": 15000},
+    {"name": "Подвеска", "rarity": "B", "chance": 5, "price": 40000},
+    {"name": "Диски и шины", "rarity": "B", "chance": 3, "price": 40000},
+    {"name": "Тормоза", "rarity": "A", "chance": 2, "price": 120000},
+    {"name": "Обвес", "rarity": "A", "chance": 1, "price": 120000},
 ]
 
 DAILY_REWARDS = [
@@ -89,7 +120,7 @@ DAILY_REWARDS = [
     {"day": 4, "type": "part_case", "amount": 2, "text": "Кейс деталей ×2"},
     {"day": 5, "type": "bike_case", "amount": 1, "text": "Кейс мотоцикла"},
     {"day": 6, "type": "money", "amount": 200000, "text": "200 000 ₽"},
-    {"day": 7, "type": "bike_case", "amount": 1, "text": "Кейс Спортбайк"},
+    {"day": 7, "type": "bike_case", "amount": 1, "text": "Кейс Спорткар"},
     {"day": 8, "type": "money", "amount": 400000, "text": "400 000 ₽"},
     {"day": 9, "type": "part_case", "amount": 2, "text": "Кейс деталей ×2"},
     {"day": 10, "type": "bike_case", "amount": 1, "text": "Кейс мотоцикла"},
@@ -110,28 +141,31 @@ def get_random_item(items):
     return items[0]
 
 def get_case_cost(case_type):
-    if case_type == 'bike': return 14000
     if case_type == 'part': return 14000
-    if case_type == 'plate': return 32000
     return 14000
 
 # --- API ---
 async def get_user(request):
     user_id = int(request.match_info.get('user_id', 1))
     async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute("SELECT balance, last_collect, daily_day, last_daily FROM users WHERE user_id = ?", (user_id,)) as cursor:
+        async with db.execute("SELECT balance, last_collect, daily_day, last_daily, referrer_id, ref_reward_claimed, starter_cases FROM users WHERE user_id = ?", (user_id,)) as cursor:
             row = await cursor.fetchone()
             if not row:
-                return web.json_response({"error": "User not found"}, status=404)
+                # Создаем юзера, если нет
+                await db.execute("INSERT INTO users (user_id) VALUES (?)", (user_id,))
+                await db.commit()
+                return web.json_response({"balance": 50000, "inventory": [], "daily_day": 1, "last_daily": 0, "starter_cases": 3, "ref_reward": False})
             
-            balance, last_collect, daily_day, last_daily = row
+            balance, last_collect, daily_day, last_daily, referrer_id, ref_reward_claimed, starter_cases = row
             now = int(time.time())
             
+            # Начисление дохода
             earned = 0
             time_passed = now - last_collect
             if time_passed > 0:
                 async with db.execute("SELECT COUNT(*) FROM inventory WHERE user_id = ? AND item_type = 'bike' AND in_garage = 1", (user_id,)) as c:
                     bikes_count = (await c.fetchone())[0]
+                # Доход = 10% от цены мотоцикла в час. Упрощенно: 1000 за каждый байк.
                 income_per_hour = bikes_count * 1000
                 effective_time = min(time_passed, 14400)
                 earned = int((effective_time / 3600) * income_per_hour)
@@ -148,49 +182,55 @@ async def get_user(request):
         "inventory": inventory,
         "daily_day": daily_day,
         "last_daily": last_daily,
-        "next_reward_time": last_daily + 86400 if last_daily > 0 else 0
+        "starter_cases": starter_cases,
+        "ref_reward": bool(ref_reward_claimed),
+        "referrer_id": referrer_id
     })
 
 async def open_case(request):
     user_id = int(request.match_info.get('user_id', 1))
     data = await request.json()
     case_type = data.get("case_type")
+    garage_key = data.get("garage_key")
     quantity = data.get("quantity", 1)
+    is_starter = data.get("is_starter", False)
 
     async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute("SELECT balance FROM users WHERE user_id = ?", (user_id,)) as cursor:
-            balance = (await cursor.fetchone())[0]
+        async with db.execute("SELECT balance, starter_cases FROM users WHERE user_id = ?", (user_id,)) as cursor:
+            row = await cursor.fetchone()
+            balance, starter_cases = row
 
-        cost_per_one = get_case_cost(case_type)
-        total_cost = cost_per_one * quantity
+        if is_starter:
+            if starter_cases < quantity:
+                return web.json_response({"error": "Недостаточно стартовых кейсов"}, status=400)
+            cost_per_one = 0
+            await db.execute("UPDATE users SET starter_cases = starter_cases - ? WHERE user_id = ?", (quantity, user_id))
+        else:
+            cost_per_one = GARAGES[garage_key]["price"]
+            total_cost = cost_per_one * quantity
+            if balance < total_cost:
+                return web.json_response({"error": "Недостаточно средств"}, status=400)
+            await db.execute("UPDATE users SET balance = balance - ? WHERE user_id = ?", (total_cost, user_id))
 
-        if balance < total_cost:
-            return web.json_response({"error": "Недостаточно средств"}, status=400)
-
+        # Проверка места
         async with db.execute("SELECT COUNT(*) FROM inventory WHERE user_id = ? AND item_type = 'bike'", (user_id,)) as c:
             total_bikes = (await c.fetchone())[0]
         if total_bikes + quantity > 26:
-            return web.json_response({"error": "Недостаточно места на складе (макс 26 байков)"}, status=400)
-
-        await db.execute("UPDATE users SET balance = balance - ? WHERE user_id = ?", (total_cost, user_id))
+            return web.json_response({"error": "Недостаточно места на складе"}, status=400)
 
         items_won = []
+        pool = MOTORCYCLES[garage_key] if not is_starter else MOTORCYCLES["rusty"]
+        
         for _ in range(quantity):
             if case_type == 'bike':
-                item = get_random_item(BIKES)
+                item = get_random_item(pool)
                 income = item["price"] // 10
                 await db.execute("INSERT INTO inventory (user_id, item_type, item_name, rarity, income, price) VALUES (?, 'bike', ?, ?, ?, ?)",
-                                 (user_id, item["name"], item["rarity"], income, item["price"]))
+                                 (user_id, item["name"], GARAGES[garage_key]["rarity"], income, item["price"]))
             elif case_type == 'part':
                 item = get_random_item(PARTS)
                 await db.execute("INSERT INTO inventory (user_id, item_type, item_name, rarity, income, price) VALUES (?, 'part', ?, ?, 0, ?)",
                                  (user_id, item["name"], item["rarity"], item["price"]))
-            elif case_type == 'plate':
-                item = {"name": "Номер 777", "rarity": "C", "img": "🪪"}
-                await db.execute("INSERT INTO inventory (user_id, item_type, item_name, rarity, income, price) VALUES (?, 'plate', ?, ?, 0, 16000)",
-                                 (user_id, item["name"], item["rarity"]))
-            else:
-                return web.json_response({"error": "Неверный тип кейса"}, status=400)
             items_won.append(item)
 
         await db.commit()
@@ -260,8 +300,8 @@ async def sell_item(request):
 async def claim_daily(request):
     user_id = int(request.match_info.get('user_id', 1))
     async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute("SELECT daily_day, last_daily, balance FROM users WHERE user_id = ?", (user_id,)) as c:
-            daily_day, last_daily, balance = await c.fetchone()
+        async with db.execute("SELECT daily_day, last_daily FROM users WHERE user_id = ?", (user_id,)) as c:
+            daily_day, last_daily = await c.fetchone()
             
         now = int(time.time())
         if now - last_daily < 86400:
@@ -281,10 +321,10 @@ async def claim_daily(request):
             message = f"Получено: {reward['text']}"
         elif reward["type"] == "bike_case":
             for _ in range(reward["amount"]):
-                item = get_random_item(BIKES)
+                item = get_random_item(MOTORCYCLES["sport"])
                 income = item["price"] // 10
                 await db.execute("INSERT INTO inventory (user_id, item_type, item_name, rarity, income, price) VALUES (?, 'bike', ?, ?, ?, ?)",
-                                 (user_id, item["name"], item["rarity"], income, item["price"]))
+                                 (user_id, item["name"], "A", income, item["price"]))
             message = f"Получено: {reward['text']}"
         
         next_day = daily_day + 1 if daily_day < 14 else 1
@@ -308,12 +348,47 @@ def create_web_app():
     app.router.add_post("/api/user/{user_id}/daily", claim_daily)
     return app
 
-@dp.message(Command("start"))
+# --- БОТ ---
+@dp.message(CommandStart())
 async def cmd_start(message: types.Message):
+    args = message.text.split()
+    user_id = message.from_user.id
+    
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
+        
+        # Обработка реферальной ссылки
+        if len(args) > 1 and args[1].startswith("ref_"):
+            try:
+                referrer_id = int(args[1].replace("ref_", ""))
+                if referrer_id != user_id:
+                    async with db.execute("SELECT referrer_id, ref_reward_claimed FROM users WHERE user_id = ?", (user_id,)) as c:
+                        row = await c.fetchone()
+                        if row and row[0] is None: # Если еще не привязан
+                            await db.execute("UPDATE users SET referrer_id = ? WHERE user_id = ?", (referrer_id, user_id))
+                            await db.commit()
+                            
+                            # Даем награды
+                            await db.execute("UPDATE users SET balance = balance + 150000 WHERE user_id = ?", (user_id,))
+                            await db.execute("UPDATE users SET balance = balance + 100000, ref_reward_claimed = 1 WHERE user_id = ?", (referrer_id,))
+                            
+                            try:
+                                await bot.send_message(referrer_id, "🎉 По вашей ссылке зашел друг! Вам начислено 100 000 ₽.")
+                            except:
+                                pass
+            except ValueError:
+                pass
+
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🎮 Открыть игру", web_app=WebAppInfo(url=f"{WEBAPP_URL}"))]
     ])
-    await message.answer("Привет! Открывай игру и собирай мотоциклы 👇", reply_markup=kb)
+    # Ссылка на приглашение друга
+    ref_link = f"https://t.me/{(await bot.get_me()).username}?start=ref_{user_id}"
+    
+    await message.answer(f"Привет! Открывай игру и собирай мотоциклы 👇\n\n"
+                         f"🎁 Твоя реферальная ссылка:\n<code>{ref_link}</code>\n"
+                         f"Пригласи друга и получи 100 000 ₽, а друг получит 150 000 ₽ на старт!", 
+                         reply_markup=kb)
 
 async def main():
     await init_db()
