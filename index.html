@@ -7,235 +7,249 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --bg: #0f0f0f;
+            --bg: #000000;
             --card-bg: #1c1c1e;
-            --card-hover: #2c2c2e;
+            --card-light: #2c2c2e;
             --text: #ffffff;
             --text-muted: #8e8e93;
             --blue: #0a84ff;
             --green: #30d158;
-            --border: #2c2c2e;
+            --red: #ff453a;
             --gold: #ffd60a;
             --purple: #bf5af2;
-            --red: #ff453a;
+            --border: #333333;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background: var(--bg); color: var(--text); padding-bottom: 80px; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: var(--text); padding-bottom: 80px; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         
         /* Шапка */
-        .header { padding: 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: rgba(15, 15, 15, 0.9); backdrop-filter: blur(10px); z-index: 100; }
-        .logo { font-weight: 800; font-size: 20px; letter-spacing: 0.5px; }
-        .balance { background: var(--card-bg); padding: 8px 14px; border-radius: 20px; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; }
-        
+        .header { padding: 15px 15px 5px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .logo-area { display: flex; align-items: center; gap: 10px; }
+        .logo-text { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
+        .balance-pill { background: var(--card-bg); padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; border: 1px solid var(--border); }
+        .notif-icon { position: relative; width: 30px; height: 30px; background: var(--card-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 1px solid var(--border); }
+
         /* Контент */
-        .page { display: none; padding: 15px; animation: fadeIn 0.3s ease; }
+        .page { display: none; padding: 15px; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         .page.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .title { font-size: 22px; font-weight: 700; margin-bottom: 15px; }
+        /* Вкладки-сегменты (Гараж) */
+        .segment-control { display: flex; background: var(--card-bg); border-radius: 12px; padding: 3px; margin-bottom: 15px; border: 1px solid var(--border); }
+        .segment-btn { flex: 1; padding: 10px; text-align: center; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: 9px; transition: 0.2s; border: none; background: transparent; }
+        .segment-btn.active { background: #3a3a3c; color: var(--text); }
 
-        /* Переключатель вкладок кейсов (как в DROPEZONE) */
-        .case-tabs { display: flex; background: var(--card-bg); border-radius: 12px; padding: 4px; margin-bottom: 20px; }
-        .case-tab { flex: 1; padding: 10px; text-align: center; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: 10px; transition: 0.2s; border: none; background: transparent; }
-        .case-tab.active { background: var(--blue); color: white; }
+        /* Карточки */
+        .card { background: var(--card-bg); border-radius: 16px; padding: 15px; margin-bottom: 12px; border: 1px solid var(--border); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .card-title { font-size: 15px; font-weight: 600; }
+        .card-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 
-        /* Карточки кейсов */
-        .case-list { display: flex; flex-direction: column; gap: 10px; }
-        .case-card { background: var(--card-bg); border-radius: 16px; padding: 15px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
-        .case-card:active { transform: scale(0.98); background: var(--card-hover); }
+        /* Гараж (доход) */
+        .income-block { margin-top: 10px; }
+        .income-value { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin: 5px 0; }
+        .progress-bar { background: #333; height: 6px; border-radius: 3px; overflow: hidden; margin: 10px 0; }
+        .progress-fill { background: var(--blue); height: 100%; width: 45%; border-radius: 3px; }
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn:active { opacity: 0.8; }
+        .btn-primary { background: var(--blue); color: white; }
+        .btn-secondary { background: var(--card-light); color: var(--text); }
+        .btn-danger { background: #3a1c1c; color: var(--red); }
+
+        /* Сетка мотоциклов */
+        .bike-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .bike-card { background: var(--card-bg); border-radius: 14px; padding: 12px; position: relative; border: 1px solid var(--border); display: flex; flex-direction: column; }
+        .rarity-badge { position: absolute; top: 10px; left: 10px; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; color: #000; }
+        .rarity-D { background: #8e8e93; } .rarity-C { background: var(--blue); color: #fff; } .rarity-B { background: var(--purple); color: #fff; } .rarity-A { background: var(--gold); } .rarity-S { background: var(--red); color: #fff; }
+        .bike-img { font-size: 60px; text-align: center; margin: 15px 0; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5)); }
+        .bike-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .bike-desc { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+        .bike-price { color: var(--green); font-weight: 600; font-size: 12px; margin-top: 4px; }
+        .empty-slot { background: transparent; border: 1px dashed var(--border); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 12px; min-height: 150px; }
+
+        /* Кейсы (Выбор) */
+        .case-selector { background: var(--card-light); padding: 10px 15px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 14px; cursor: pointer; margin-bottom: 15px; }
+        .big-case-img { text-align: center; font-size: 100px; margin: 30px 0; position: relative; }
+        .big-case-img::after { content: '?'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 40px; color: rgba(255,255,255,0.2); }
+        .case-buttons-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .case-multiplier { flex: 1; padding: 12px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; text-align: center; font-weight: 600; cursor: pointer; color: var(--text-muted); }
+        .case-multiplier.active { background: #555; color: white; border-color: #777; }
+
+        /* Сетка деталей (Мастерская) */
+        .parts-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+        .part-box { background: var(--card-bg); border-radius: 12px; padding: 15px 5px; text-align: center; border: 1px solid var(--border); cursor: pointer; transition: 0.2s; }
+        .part-box.active { border-color: var(--blue); background: rgba(10,132,255,0.1); }
+        .part-box-icon { font-size: 30px; margin-bottom: 5px; }
+        .part-box-name { font-size: 11px; font-weight: 600; }
         
-        .case-info { display: flex; align-items: center; gap: 15px; }
-        .case-icon { width: 45px; height: 45px; background: #2c2c2e; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
-        .case-details h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        /* Мастерская (список) */
+        .craft-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--border); }
+        .craft-item:last-child { border-bottom: none; }
+        .craft-info { display: flex; align-items: center; gap: 15px; }
+        .craft-icon { font-size: 24px; background: var(--card-light); padding: 10px; border-radius: 10px; }
         
-        .chances { display: flex; gap: 6px; flex-wrap: wrap; }
-        .badge { font-size: 11px; padding: 2px 6px; border-radius: 6px; display: flex; align-items: center; gap: 4px; background: #2c2c2e; color: #ccc; font-weight: 500; }
-        .dot { width: 6px; height: 6px; border-radius: 50%; }
-        .dot-D { background: #8e8e93; } .dot-C { background: var(--blue); } .dot-B { background: var(--purple); } .dot-A { background: var(--gold); } .dot-S { background: var(--red); }
-        
-        .case-price { font-weight: 600; font-size: 14px; color: var(--text); background: #2c2c2e; padding: 6px 10px; border-radius: 8px; }
-
-        /* Генератор номеров */
-        .plate-generator { background: var(--card-bg); border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 20px; }
-        .plate-preview { background: #e5e5e5; color: #000; border: 3px solid #fff; border-radius: 8px; padding: 15px; font-size: 28px; font-weight: bold; letter-spacing: 2px; margin: 15px auto; position: relative; display: inline-block; min-width: 220px; font-family: monospace; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-        .plate-region { position: absolute; right: 5px; bottom: 5px; font-size: 12px; display: flex; flex-direction: column; align-items: center; font-family: sans-serif; }
-        .btn-generate { width: 100%; padding: 14px; background: var(--blue); color: white; border: none; border-radius: 12px; font-weight: 600; font-size: 16px; cursor: pointer; margin-top: 10px; transition: 0.2s; }
-        .btn-generate:active { opacity: 0.8; }
-        
-        /* Гараж */
-        .inventory-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .inv-card { background: var(--card-bg); border-radius: 16px; padding: 15px; position: relative; display: flex; flex-direction: column; align-items: center; border: 1px solid var(--border); }
-        .inv-rarity { position: absolute; top: 12px; left: 12px; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; color: #000; }
-        .inv-rarity.D { background: #8e8e93; } .inv-rarity.C { background: var(--blue); color: #fff; } .inv-rarity.B { background: var(--purple); color: #fff; } .inv-rarity.A { background: var(--gold); } .inv-rarity.S { background: var(--red); color: #fff; }
-        .inv-icon { font-size: 48px; margin: 15px 0 10px; }
-        .inv-name { font-size: 14px; font-weight: 600; text-align: center; line-height: 1.2; }
-        .inv-income { font-size: 12px; color: var(--green); margin-top: 6px; font-weight: 500; }
-
-        /* Мастерская */
-        .craft-card { background: var(--card-bg); border-radius: 16px; padding: 15px; margin-bottom: 15px; }
-        .craft-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
-        .craft-row:last-child { border-bottom: none; }
-        .btn-craft { background: var(--blue); color: white; border: none; padding: 8px 16px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: 0.2s; }
-        .btn-craft:active { opacity: 0.8; }
-        .btn-craft:disabled { background: #2c2c2e; color: #666; cursor: not-allowed; }
-
-        /* Профиль */
-        .profile-header { background: var(--card-bg); border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 15px; }
-        .avatar { width: 80px; height: 80px; border-radius: 50%; background: #2c2c2e; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 40px; }
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .stat-card { background: var(--card-bg); padding: 15px; border-radius: 16px; text-align: center; }
-        .stat-val { font-size: 22px; font-weight: 700; }
-        .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-
         /* Модальное окно */
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); }
         .modal-overlay.active { display: flex; }
-        .modal-content { background: var(--card-bg); width: 90%; max-width: 350px; border-radius: 24px; padding: 25px; text-align: center; position: relative; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .modal-content { background: var(--card-bg); width: 90%; max-width: 350px; border-radius: 24px; padding: 25px; text-align: center; position: relative; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 1px solid var(--border); }
         @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        .modal-close { position: absolute; top: 15px; right: 15px; background: #2c2c2e; border: none; color: var(--text-muted); width: 32px; height: 32px; border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .modal-close { position: absolute; top: 15px; right: 15px; background: var(--card-light); border: none; color: var(--text-muted); width: 32px; height: 32px; border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .spin-result { margin: 25px 0; }
-        .result-icon { font-size: 80px; margin-bottom: 15px; filter: drop-shadow(0 0 20px rgba(255,255,255,0.2)); }
-        .result-name { font-size: 22px; font-weight: 700; }
+        .result-icon { font-size: 80px; margin-bottom: 15px; }
+        .result-name { font-size: 22px; font-weight: 800; }
         .result-rarity { font-size: 14px; margin-top: 8px; font-weight: 600; }
 
         /* Нижнее меню */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(28, 28, 30, 0.95); backdrop-filter: blur(10px); display: flex; padding: 10px 10px 25px 10px; gap: 5px; border-top: 1px solid var(--border); z-index: 100; }
-        .nav-btn { flex: 1; background: none; border: none; color: var(--text-muted); font-size: 11px; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; padding: 8px; border-radius: 12px; transition: 0.2s; }
-        .nav-btn.active { color: var(--blue); }
-        .nav-btn span { font-size: 22px; }
+        .bottom-nav { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); background: rgba(28, 28, 30, 0.95); backdrop-filter: blur(10px); display: flex; padding: 6px; gap: 5px; border-radius: 30px; border: 1px solid var(--border); z-index: 100; width: 90%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .nav-btn { flex: 1; background: none; border: none; color: var(--text-muted); font-size: 12px; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 10px 0; border-radius: 20px; transition: 0.2s; }
+        .nav-btn.active { color: var(--text); background: #3a3a3c; }
+        .nav-icon { font-size: 18px; }
+
+        /* Страница Меню */
+        .menu-link { display: flex; align-items: center; gap: 15px; background: var(--card-bg); padding: 15px; border-radius: 16px; margin-bottom: 10px; border: 1px solid var(--border); cursor: pointer; }
+        .menu-link-icon { font-size: 28px; }
+        .menu-link-title { font-size: 16px; font-weight: 700; }
+        .menu-link-sub { font-size: 12px; color: var(--text-muted); }
+        
+        /* Ежедневный бонус */
+        .daily-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
+        .daily-item { background: var(--card-bg); border-radius: 12px; padding: 10px 5px; text-align: center; border: 1px solid var(--border); font-size: 10px; position: relative; }
+        .daily-item.claimed { opacity: 0.5; }
+        .daily-item.active { border-color: var(--blue); background: rgba(10,132,255,0.1); }
+        .daily-day { font-weight: 700; color: var(--text-muted); margin-bottom: 5px; }
+        .daily-icon { font-size: 20px; margin-bottom: 5px; }
+        .daily-text { font-weight: 600; font-size: 9px; }
     </style>
 </head>
 <body>
 
+    <!-- Шапка -->
     <div class="header">
-        <div class="logo">Гараж</div>
-        <div class="balance">
+        <div class="logo-area">
+            <div class="notif-icon">👤<span style="position: absolute; bottom: -2px; right: -2px; background: var(--blue); color: white; font-size: 8px; width: 14px; height: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg);">7</span></div>
+            <div class="logo-text" id="header-title">Гараж</div>
+        </div>
+        <div class="balance-pill">
             <span>💰</span> <span id="balance-display">0</span> ₽
         </div>
     </div>
 
-    <!-- КЕЙСЫ -->
-    <div id="page-cases" class="page active">
-        
-        <!-- Вкладки кейсов -->
-        <div class="case-tabs">
-            <button class="case-tab active" onclick="switchCaseTab('bike', this)">🏍️ Мотоциклы</button>
-            <button class="case-tab" onclick="switchCaseTab('part', this)">🔧 Запчасти</button>
-            <button class="case-tab" onclick="switchCaseTab('plate', this)">🪪 Номера</button>
+    <!-- ГАРАЖ -->
+    <div id="page-garage" class="page active">
+        <div class="segment-control">
+            <button class="segment-btn active" onclick="switchGarageTab('bikes', this)">Мотоциклы</button>
+            <button class="segment-btn" onclick="switchGarageTab('warehouse', this)">Склад</button>
+            <button class="segment-btn" onclick="switchGarageTab('showcase', this)">Витрина</button>
         </div>
-        
-        <div id="case-list-bike" class="case-list"></div>
-        <div id="case-list-part" class="case-list" style="display: none;"></div>
-        
-        <!-- Генератор номеров -->
-        <div id="case-list-plate" style="display: none;">
-            <div class="plate-generator">
-                <div style="font-size: 16px; font-weight: 600; color: var(--text-muted);">Генерация номера</div>
-                <div class="plate-preview" id="plate-preview">
-                    ---
-                    <div class="plate-region">RUS</div>
-                </div>
-                <button class="btn-generate" onclick="generatePlate()">Сгенерировать • 32 000 ₽</button>
+
+        <div class="card" id="garage-income-block">
+            <div class="card-header">
+                <div class="card-title">Доход гаража</div>
+                <div class="card-sub" id="income-per-hour">0 ₽ / ч</div>
             </div>
-            
-            <div class="case-list">
-                <div class="case-card">
-                    <div class="case-info">
-                        <div class="case-icon">🪪</div>
-                        <div class="case-details">
-                            <h3>Обычная</h3>
-                            <div class="chances">
-                                <span class="badge"><span class="dot dot-D"></span>84,39%</span>
-                                <span class="badge"><span class="dot dot-C"></span>15,6%</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="case-price">32 000 ₽</div>
-                </div>
-                <div class="case-card">
-                    <div class="case-info">
-                        <div class="case-icon">🏷️</div>
-                        <div class="case-details">
-                            <h3>Улучшенная</h3>
-                            <div class="chances">
-                                <span class="badge"><span class="dot dot-C"></span>53,8%</span>
-                                <span class="badge"><span class="dot dot-B"></span>44%</span>
-                                <span class="badge"><span class="dot dot-A"></span>2,2%</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="case-price">225 000 ₽</div>
-                </div>
-                <div class="case-card">
-                    <div class="case-info">
-                        <div class="case-icon">✨</div>
-                        <div class="case-details">
-                            <h3>Красивая</h3>
-                            <div class="chances">
-                                <span class="badge"><span class="dot dot-B"></span>30%</span>
-                                <span class="badge"><span class="dot dot-A"></span>68,8%</span>
-                                <span class="badge"><span class="dot dot-S"></span>1,199%</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="case-price">1 600 000 ₽</div>
-                </div>
+            <div class="income-block">
+                <div class="income-value" id="current-income">0 ₽</div>
+                <div class="progress-bar"><div class="progress-fill"></div></div>
+                <button class="btn btn-primary" onclick="collectIncome()">Забрать</button>
             </div>
+            <div class="card-sub" style="text-align: center; margin-top: 10px;">Копится до 4 часов. Заберите доход!</div>
+        </div>
+
+        <div id="garage-bikes-view">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <div class="card-sub" id="bikes-count-text">Мотоциклы 0/6</div>
+                <div style="color: var(--blue); font-size: 12px; font-weight: 600; cursor: pointer;" onclick="switchGarageTab('warehouse', document.querySelectorAll('.segment-btn')[1])">Выбрать</div>
+            </div>
+            <div class="bike-grid" id="garage-grid"></div>
+        </div>
+
+        <div id="garage-warehouse-view" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div style="font-size: 14px; font-weight: 600;">Склад</div>
+            </div>
+            <div id="warehouse-list"></div>
         </div>
     </div>
 
-    <!-- ГАРАЖ -->
-    <div id="page-garage" class="page">
-        <div class="title">Гараж</div>
-        <div style="background: var(--card-bg); border-radius: 16px; padding: 20px; margin-bottom: 20px;">
-            <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 5px;">Доход гаража (в час)</div>
-            <div style="font-size: 28px; font-weight: 800; color: var(--green);" id="garage-income">0 ₽ / ч</div>
-            <div style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">Копится до 4 часов. Заберите доход!</div>
-            <button onclick="collectIncome()" style="width: 100%; padding: 14px; background: var(--blue); color: white; border: none; border-radius: 12px; font-weight: 600; margin-top: 15px; font-size: 16px; cursor: pointer; transition: 0.2s;">Забрать</button>
+    <!-- КЕЙСЫ -->
+    <div id="page-cases" class="page">
+        <div class="case-selector" onclick="alert('Пока доступен только кейс Поддержанные')">
+            <span>🏍️ Поддержанные</span>
+            <span>▼</span>
         </div>
         
-        <div style="font-size: 18px; font-weight: 700; margin-bottom: 12px;">Мотоциклы (<span id="bikes-count">0</span>)</div>
-        <div id="garage-grid" class="inventory-grid"></div>
-
-        <div style="font-size: 18px; font-weight: 700; margin-bottom: 12px; margin-top: 25px;">Номера (<span id="plates-count">0</span>)</div>
-        <div id="plates-grid" class="inventory-grid"></div>
+        <div class="big-case-img">🏍️</div>
+        
+        <div class="case-buttons-row">
+            <div class="case-multiplier active" onclick="selectMultiplier(1, this)">x1</div>
+            <div class="case-multiplier" onclick="selectMultiplier(3, this)">x3</div>
+            <div class="case-multiplier" onclick="selectMultiplier(5, this)">x5</div>
+        </div>
+        
+        <button class="btn btn-primary" id="open-case-btn" onclick="openCase()" style="margin-bottom: 10px;">Открыть ещё - 14 000 ₽</button>
+        <div class="card-sub" style="text-align: center; margin-bottom: 20px;">Свободно мест на складе: <span id="free-slots">26</span></div>
+        
+        <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <div class="card-title">⚡ Быстрое открытие</div>
+                <div class="card-sub">Все символы сразу — и для кейсов</div>
+            </div>
+            <div style="font-weight: bold; color: var(--text-muted);">Выкл</div>
+        </div>
     </div>
 
     <!-- МАСТЕРСКАЯ -->
     <div id="page-craft" class="page">
-        <div class="title">Мастерская</div>
-        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 15px;">Объединяйте 3 запчасти одной редкости, чтобы получить 1 запчасть рангом выше.</p>
-        <div id="craft-list" class="craft-card"></div>
+        <div class="card-sub" style="margin-bottom: 15px;">ДЕТАЛЬ</div>
+        <div class="parts-grid">
+            <div class="part-box active"><div class="part-box-icon">🎲</div><div class="part-box-name">Любая</div></div>
+            <div class="part-box"><div class="part-box-icon">⚙️</div><div class="part-box-name">Двигатель</div></div>
+            <div class="part-box"><div class="part-box-icon">🌀</div><div class="part-box-name">Турбина</div></div>
+            <div class="part-box"><div class="part-box-icon">⚙️</div><div class="part-box-name">КПП</div></div>
+            <div class="part-box"><div class="part-box-icon">🔧</div><div class="part-box-name">Выхлоп</div></div>
+            <div class="part-box"><div class="part-box-icon">🔩</div><div class="part-box-name">Подвеска</div></div>
+        </div>
+
+        <div class="card-sub" style="margin-bottom: 15px;">КЕЙС</div>
+        <div class="card" style="padding: 0;">
+            <div class="craft-item" style="padding: 15px;">
+                <div class="craft-info">
+                    <div class="craft-icon">🔧</div>
+                    <div>
+                        <div style="font-weight: 600;">Разборка</div>
+                        <div style="font-size: 10px; color: var(--text-muted); display: flex; gap: 5px; margin-top: 3px;">
+                            <span style="background:#333; padding:2px 4px; border-radius:4px;">● 85%</span>
+                            <span style="background:#333; padding:2px 4px; border-radius:4px; color:var(--blue);">● 14%</span>
+                            <span style="background:#333; padding:2px 4px; border-radius:4px; color:var(--purple);">● 1%</span>
+                        </div>
+                    </div>
+                </div>
+                <div style="font-weight: 600; font-size: 13px;">14 000 ₽ <span style="color: var(--blue);">✓</span></div>
+            </div>
+        </div>
+
+        <div class="card-sub" style="margin-top: 20px;">КРАФТ</div>
+        <div id="craft-section" class="card"></div>
     </div>
 
-    <!-- ПРОФИЛЬ -->
-    <div id="page-profile" class="page">
-        <div class="title">Профиль</div>
-        
-        <div class="profile-header">
-            <div class="avatar">👤</div>
-            <div style="font-size: 22px; font-weight: 700;" id="profile-name">Игрок</div>
-            <div style="color: var(--text-muted); font-size: 14px; margin-top: 4px;" id="profile-id">ID: ...</div>
+    <!-- МЕНЮ -->
+    <div id="page-menu" class="page">
+        <div class="card-sub" style="margin-bottom: 10px;">ЕЩЁ</div>
+        <div class="menu-link">
+            <div class="menu-link-icon">🎒</div>
+            <div>
+                <div class="menu-link-title">Инвентарь</div>
+                <div class="menu-link-sub">Предметы, кейсы, детали и мотоциклы</div>
+            </div>
+            <div style="margin-left: auto; color: var(--blue); font-weight: 600;" id="menu-inventory-count">0</div>
         </div>
 
-        <div class="stat-grid">
-            <div class="stat-card">
-                <div class="stat-val" id="stat-bikes">0</div>
-                <div class="stat-label">в гараже</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-val" id="stat-collection">0/7</div>
-                <div class="stat-label">коллекция</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-val" id="stat-plates">0</div>
-                <div class="stat-label">номеров</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-val" id="stat-cases">0</div>
-                <div class="stat-label">кейсов</div>
-            </div>
+        <div class="card-sub" style="margin-bottom: 10px; margin-top: 20px;">ЕЖЕДНЕВНЫЙ БОНУС</div>
+        <div class="daily-grid" id="daily-grid"></div>
+        <div class="card-sub" style="margin-bottom: 10px; color: var(--text-muted); line-height: 1.4;">
+            Заходи каждый день: на 7-й день — «Спортбайк», на 14-й — «Элита». Пропустил день — ничего не сгорает.
         </div>
+        <button class="btn btn-primary" id="daily-btn" onclick="claimDaily()">Забрать бонус</button>
     </div>
 
     <!-- МОДАЛЬНОЕ ОКНО -->
@@ -248,229 +262,268 @@
                 <div id="result-name" class="result-name">Название</div>
                 <div id="result-rarity" class="result-rarity">D</div>
             </div>
-            <button onclick="closeModal()" style="width: 100%; padding: 14px; background: var(--green); color: black; border: none; border-radius: 12px; font-weight: 600; font-size: 16px; cursor: pointer;">Забрать</button>
+            <button class="btn btn-primary" onclick="closeModal()">Забрать</button>
         </div>
     </div>
 
     <!-- НИЖНЕЕ МЕНЮ -->
     <div class="bottom-nav">
-        <button class="nav-btn active" onclick="switchPage('cases', this)"><span>🎁</span> Кейсы</button>
-        <button class="nav-btn" onclick="switchPage('garage', this)"><span>🏠</span> Гараж</button>
-        <button class="nav-btn" onclick="switchPage('craft', this)"><span>🛠️</span> Мастерская</button>
-        <button class="nav-btn" onclick="switchPage('profile', this)"><span>👤</span> Профиль</button>
+        <button class="nav-btn active" onclick="switchPage('garage', this, 'Гараж')">
+            <span class="nav-icon">🏠</span> Гараж
+        </button>
+        <button class="nav-btn" onclick="switchPage('cases', this, 'Кейсы')">
+            <span class="nav-icon">🎁</span> Кейсы
+        </button>
+        <button class="nav-btn" onclick="switchPage('craft', this, 'Мастерская')">
+            <span class="nav-icon">🛠️</span> Мастерская
+        </button>
+        <button class="nav-btn" onclick="switchPage('menu', this, 'Меню')">
+            <span class="nav-icon">☰</span> Меню
+        </button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
-        tg.setHeaderColor('#0f0f0f');
-        tg.setBackgroundColor('#0f0f0f');
+        tg.setHeaderColor('#000000');
+        tg.setBackgroundColor('#000000');
 
         const userId = tg.initDataUnsafe?.user?.id || 1;
-        const userName = tg.initDataUnsafe?.user?.first_name || "Тестер";
-        let userData = { balance: 0, inventory: [] };
-
-        const BIKES_DATA = [
-            { name: "Ржавый гараж", rarity: "D", price: 50000, chance: 99.6 },
-            { name: "Поддержанные", rarity: "D", price: 150000, chance: 95.5 },
-            { name: "Городской", rarity: "C", price: 500000, chance: 85.3 },
-            { name: "Тюнинг-ателье", rarity: "B", price: 1200000, chance: 37.8 },
-            { name: "Спортбайк", rarity: "A", price: 2500000, chance: 67.0 },
-            { name: "Премиум", rarity: "A", price: 5000000, chance: 12.5 },
-            { name: "Элита", rarity: "S", price: 8000000, chance: 56.3 }
-        ];
-        const PARTS_DATA = [
-            { name: "Разборка", rarity: "D", chance: 85.0 },
-            { name: "Тюнинг-ателье", rarity: "C", chance: 50.0 },
-            { name: "Гоночный цех", rarity: "B", chance: 30.0 },
-            { name: "Заводской тюнинг", rarity: "A", chance: 39.88 },
-            { name: "Секретный цех", rarity: "S", chance: 9.97 }
-        ];
+        let userData = { balance: 0, inventory: [], daily_day: 1, last_daily: 0 };
+        let currentMultiplier = 1;
 
         async function loadUser() {
             try {
                 const res = await fetch(`/api/user/${userId}`);
                 userData = await res.json();
                 updateUI();
-            } catch (e) { console.error("Ошибка загрузки:", e); }
+            } catch (e) { console.error(e); }
         }
 
         function updateUI() {
             document.getElementById('balance-display').innerText = userData.balance.toLocaleString('ru-RU');
-            document.getElementById('profile-name').innerText = userName;
-            document.getElementById('profile-id').innerText = `ID: ${userId}`;
             
-            const bikes = userData.inventory.filter(i => i.type === 'bike');
-            const plates = userData.inventory.filter(i => i.type === 'plate');
+            const bikes = userData.inventory.filter(i => i.type === 'bike' && i.in_garage === 1);
+            const warehouseBikes = userData.inventory.filter(i => i.type === 'bike' && i.in_garage === 0);
             const parts = userData.inventory.filter(i => i.type === 'part');
 
             // Гараж
-            document.getElementById('bikes-count').innerText = bikes.length;
             const totalIncome = bikes.reduce((acc, b) => acc + (b.income || 0), 0);
-            document.getElementById('garage-income').innerText = `${totalIncome.toLocaleString('ru-RU')} ₽ / ч`;
+            document.getElementById('income-per-hour').innerText = `${totalIncome.toLocaleString('ru-RU')} ₽ / ч`;
+            document.getElementById('bikes-count-text').innerText = `Мотоциклы ${bikes.length}/6`;
+            
+            // Расчет свободных мест (6 в гараже, 20 на складе - для байков)
+            const totalBikes = bikes.length + warehouseBikes.length;
+            document.getElementById('free-slots').innerText = Math.max(0, 26 - totalBikes);
 
             const garageGrid = document.getElementById('garage-grid');
             garageGrid.innerHTML = '';
             bikes.forEach(bike => {
                 garageGrid.innerHTML += `
-                    <div class="inv-card">
-                        <div class="inv-rarity ${bike.rarity}">${bike.rarity}</div>
-                        <div class="inv-icon">🏍️</div>
-                        <div class="inv-name">${bike.name}</div>
-                        <div class="inv-income">+${bike.income} ₽/ч</div>
+                    <div class="bike-card">
+                        <div class="rarity-badge rarity-${bike.rarity}">${bike.rarity}</div>
+                        <div class="bike-img">🏍️</div>
+                        <div class="bike-name">${bike.name}</div>
+                        <div class="bike-desc">${bike.income * 10} л.с. · ${(bike.income * 100).toLocaleString('ru-RU')} ₽</div>
                     </div>
                 `;
             });
+            for (let i = bikes.length; i < 6; i++) {
+                garageGrid.innerHTML += `<div class="empty-slot">+ Свободное место</div>`;
+            }
 
-            // Номера
-            document.getElementById('plates-count').innerText = plates.length;
-            const platesGrid = document.getElementById('plates-grid');
-            platesGrid.innerHTML = '';
-            plates.forEach(plate => {
-                platesGrid.innerHTML += `
-                    <div class="inv-card">
-                        <div class="inv-rarity ${plate.rarity}">${plate.rarity}</div>
-                        <div class="inv-icon" style="font-size: 18px; font-family: monospace; background:#fff; color:#000; border-radius:6px; padding:6px 10px; margin: 20px 0 10px;">${plate.name.replace('Номер ', '')}</div>
-                        <div class="inv-name" style="font-size:12px;">${plate.name.split(' ')[0]}</div>
+            // Склад
+            const warehouseList = document.getElementById('warehouse-list');
+            warehouseList.innerHTML = '';
+            if (warehouseBikes.length === 0 && parts.length === 0) {
+                warehouseList.innerHTML = '<div class="card-sub" style="text-align:center; padding: 20px;">Склад пуст</div>';
+            }
+            warehouseBikes.forEach(bike => {
+                warehouseList.innerHTML += `
+                    <div class="card" style="display: flex; align-items: center; gap: 15px; margin-bottom: 8px; padding: 12px;">
+                        <div style="font-size: 30px;">🏍️</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600;">${bike.name}</div>
+                            <div class="card-sub">+${bike.income} ₽/ч</div>
+                        </div>
+                        <button class="btn btn-primary" style="width: auto; padding: 8px 12px; font-size: 12px;" onclick="equipItem(${bike.id})">В гараж</button>
+                        <button class="btn btn-danger" style="width: auto; padding: 8px 12px; font-size: 12px;" onclick="sellItem(${bike.id})">Продать</button>
                     </div>
                 `;
             });
-
-            // Статистика
-            document.getElementById('stat-bikes').innerText = bikes.length;
-            document.getElementById('stat-plates').innerText = plates.length;
-            document.getElementById('stat-collection').innerText = `${new Set(bikes.map(b => b.name)).size}/7`;
+            parts.forEach(part => {
+                warehouseList.innerHTML += `
+                    <div class="card" style="display: flex; align-items: center; gap: 15px; margin-bottom: 8px; padding: 12px;">
+                        <div style="font-size: 30px;">⚙️</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600;">${part.name}</div>
+                            <div class="card-sub">Деталь · Редкость ${part.rarity}</div>
+                        </div>
+                        <button class="btn btn-danger" style="width: auto; padding: 8px 12px; font-size: 12px;" onclick="sellItem(${part.id})">Продать</button>
+                    </div>
+                `;
+            });
 
             // Мастерская
-            const craftList = document.getElementById('craft-list');
-            craftList.innerHTML = '';
+            const craftSection = document.getElementById('craft-section');
+            craftSection.innerHTML = '';
             ['D', 'C', 'B', 'A'].forEach(rarity => {
                 const count = parts.filter(p => p.rarity === rarity).length;
-                const canCraft = count >= 3;
-                craftList.innerHTML += `
-                    <div class="craft-row">
-                        <div>
-                            <div style="font-weight: 600;">Редкость ${rarity}</div>
-                            <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">В наличии: ${count} шт.</div>
-                        </div>
-                        <button class="btn-craft" onclick="craftItem('${rarity}')" ${canCraft ? '' : 'disabled'}>Скрафтить</button>
-                    </div>
-                `;
-            });
-        }
-
-        function renderCases() {
-            const bikeList = document.getElementById('case-list-bike');
-            bikeList.innerHTML = '';
-            BIKES_DATA.forEach(item => {
-                bikeList.innerHTML += `
-                    <div class="case-card" onclick="openCase('bike')">
-                        <div class="case-info">
-                            <div class="case-icon">🏍️</div>
-                            <div class="case-details">
-                                <h3>${item.name}</h3>
-                                <div class="chances"><span class="badge"><span class="dot dot-${item.rarity}"></span>${item.chance}%</span></div>
+                craftSection.innerHTML += `
+                    <div class="craft-item">
+                        <div class="craft-info">
+                            <div class="craft-icon">⚙️</div>
+                            <div>
+                                <div style="font-weight: 600;">Редкость ${rarity}</div>
+                                <div class="card-sub">В наличии: ${count} шт.</div>
                             </div>
                         </div>
-                        <div class="case-price">${(item.price).toLocaleString('ru-RU')} ₽</div>
+                        <button class="btn btn-secondary" style="width: auto; padding: 8px 12px; font-size: 12px;" onclick="craftItem('${rarity}')" ${count >= 3 ? '' : 'disabled'}>Скрафтить</button>
                     </div>
                 `;
             });
 
-            const partList = document.getElementById('case-list-part');
-            partList.innerHTML = '';
-            PARTS_DATA.forEach(item => {
-                partList.innerHTML += `
-                    <div class="case-card" onclick="openCase('part')">
-                        <div class="case-info">
-                            <div class="case-icon">🔧</div>
-                            <div class="case-details">
-                                <h3>${item.name}</h3>
-                                <div class="chances"><span class="badge"><span class="dot dot-${item.rarity}"></span>${item.chance}%</span></div>
-                            </div>
-                        </div>
-                        <div class="case-price">14 000 ₽</div>
+            // Меню (Ежедневный бонус)
+            const dailyGrid = document.getElementById('daily-grid');
+            dailyGrid.innerHTML = '';
+            const dailyRewards = [
+                { day: 1, icon: '💵', text: '30 000 ₽' }, { day: 2, icon: '🔧', text: 'Кейс деталей ×3' },
+                { day: 3, icon: '💵', text: '80 000 ₽' }, { day: 4, icon: '🔧', text: 'Кейс деталей ×2' },
+                { day: 5, icon: '🏍️', text: 'Кейс мотоцикла' }, { day: 6, icon: '💵', text: '200 000 ₽' },
+                { day: 7, icon: '🏎️', text: 'Кейс Спортбайк' }, { day: 8, icon: '💵', text: '400 000 ₽' },
+                { day: 9, icon: '🔧', text: 'Кейс деталей ×2' }, { day: 10, icon: '🏍️', text: 'Кейс мотоцикла' },
+                { day: 11, icon: '💵', text: '700 000 ₽' }, { day: 12, icon: '🔧', text: 'Кейс деталей' },
+                { day: 13, icon: '💵', text: '1.5 млн ₽' }, { day: 14, icon: '👑', text: 'Кейс Элита' }
+            ];
+
+            dailyRewards.forEach((r, idx) => {
+                const isClaimed = idx < userData.daily_day - 1;
+                const isActive = idx === userData.daily_day - 1;
+                dailyGrid.innerHTML += `
+                    <div class="daily-item ${isClaimed ? 'claimed' : ''} ${isActive ? 'active' : ''}">
+                        <div class="daily-day">ДЕНЬ ${r.day}</div>
+                        <div class="daily-icon">${r.icon}</div>
+                        <div class="daily-text">${r.text}</div>
+                        ${isClaimed ? '<div style="position:absolute; top:5px; right:5px; color:var(--green);">✔</div>' : ''}
                     </div>
                 `;
             });
+
+            // Проверка доступности бонуса (раз в 24 часа)
+            const now = Math.floor(Date.now() / 1000);
+            const dailyBtn = document.getElementById('daily-btn');
+            if (userData.last_daily && (now - userData.last_daily < 86400)) {
+                dailyBtn.disabled = true;
+                dailyBtn.innerText = "Бонус уже забран";
+                dailyBtn.style.opacity = 0.5;
+            } else {
+                dailyBtn.disabled = false;
+                dailyBtn.innerText = "Забрать бонус";
+                dailyBtn.style.opacity = 1;
+            }
+
+            document.getElementById('menu-inventory-count').innerText = userData.inventory.length;
         }
 
-        function switchCaseTab(type, btn) {
-            document.querySelectorAll('.case-tab').forEach(b => b.classList.remove('active'));
+        function switchGarageTab(tab, btn) {
+            document.querySelectorAll('#page-garage .segment-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            document.getElementById('case-list-bike').style.display = type === 'bike' ? 'flex' : 'none';
-            document.getElementById('case-list-part').style.display = type === 'part' ? 'flex' : 'none';
-            document.getElementById('case-list-plate').style.display = type === 'plate' ? 'block' : 'none';
-            tg.HapticFeedback.selectionChanged();
+            
+            document.getElementById('garage-bikes-view').style.display = tab === 'bikes' ? 'block' : 'none';
+            document.getElementById('garage-warehouse-view').style.display = tab === 'warehouse' ? 'block' : 'none';
+            document.getElementById('garage-income-block').style.display = tab === 'bikes' ? 'block' : 'none';
+            
+            if (tab === 'showcase') {
+                alert("Витрина в разработке!");
+                switchGarageTab('bikes', document.querySelectorAll('#page-garage .segment-btn')[0]);
+            }
         }
 
-        async function generatePlate() {
+        function selectMultiplier(mult, btn) {
+            document.querySelectorAll('.case-multiplier').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentMultiplier = mult;
+            document.getElementById('open-case-btn').innerText = `Открыть ещё - ${(14000 * mult).toLocaleString('ru-RU')} ₽`;
+        }
+
+        async function openCase() {
             try {
                 const res = await fetch(`/api/user/${userId}/case`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ case_type: 'plate' })
+                    body: JSON.stringify({ case_type: 'bike', quantity: currentMultiplier })
                 });
                 const data = await res.json();
                 if (res.ok) {
                     tg.HapticFeedback.notificationOccurred('success');
-                    document.getElementById('plate-preview').innerHTML = `${data.item.name.replace('Номер ', '')}<div class="plate-region">RUS</div>`;
-                    showResult(data.item);
+                    if (data.items && data.items.length > 0) {
+                        showResult(data.items[0]); // Показываем первый предмет из пачки
+                    }
                     loadUser();
                 } else {
-                    tg.HapticFeedback.notificationOccurred('error');
                     alert(data.error);
                 }
-            } catch (e) { alert("Ошибка соединения"); }
-        }
-
-        async function openCase(type) {
-            try {
-                const res = await fetch(`/api/user/${userId}/case`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ case_type: type })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    tg.HapticFeedback.notificationOccurred('success');
-                    showResult(data.item);
-                    loadUser();
-                } else {
-                    tg.HapticFeedback.notificationOccurred('error');
-                    alert(data.error);
-                }
-            } catch (e) { alert("Ошибка соединения"); }
-        }
-
-        async function craftItem(rarity) {
-            try {
-                const res = await fetch(`/api/user/${userId}/craft`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ rarity: rarity })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    tg.HapticFeedback.notificationOccurred('success');
-                    alert(data.message);
-                    loadUser();
-                } else { alert(data.error); }
             } catch (e) { alert("Ошибка соединения"); }
         }
 
         async function collectIncome() {
+            const oldBalance = userData.balance;
+            await loadUser();
+            const earned = userData.balance - oldBalance;
             tg.HapticFeedback.notificationOccurred('success');
-            loadUser();
-            alert("Доход собран!");
+            if (earned > 0) {
+                alert(`Вы забрали ${earned.toLocaleString('ru-RU')} ₽!`);
+            } else {
+                alert("Пока нечего забирать.");
+            }
+        }
+
+        async function equipItem(id) {
+            const res = await fetch(`/api/user/${userId}/equip`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ item_id: id })
+            });
+            const data = await res.json();
+            if (res.ok) { tg.HapticFeedback.notificationOccurred('success'); loadUser(); }
+            else { alert(data.error); }
+        }
+
+        async function sellItem(id) {
+            const res = await fetch(`/api/user/${userId}/sell`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ item_id: id })
+            });
+            const data = await res.json();
+            if (res.ok) { tg.HapticFeedback.notificationOccurred('success'); loadUser(); alert(data.message); }
+            else { alert(data.error); }
+        }
+
+        async function craftItem(rarity) {
+            const res = await fetch(`/api/user/${userId}/craft`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rarity: rarity })
+            });
+            const data = await res.json();
+            if (res.ok) { tg.HapticFeedback.notificationOccurred('success'); alert(data.message); loadUser(); }
+            else { alert(data.error); }
+        }
+
+        async function claimDaily() {
+            const res = await fetch(`/api/user/${userId}/daily`, { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) { tg.HapticFeedback.notificationOccurred('success'); alert(data.message); loadUser(); }
+            else { alert(data.error); }
         }
 
         function showResult(item) {
-            document.getElementById('result-icon').innerText = item.rarity === 'S' ? '👑' : (item.name.includes('Номер') ? '🪪' : '🏍️');
+            document.getElementById('result-icon').innerText = item.img || '🏍️';
             document.getElementById('result-name').innerText = item.name;
             document.getElementById('result-rarity').innerText = `Редкость: ${item.rarity}`;
-            document.getElementById('result-rarity').className = `result-rarity dot-${item.rarity}`;
+            document.getElementById('result-rarity').className = `result-rarity rarity-${item.rarity}`;
             document.getElementById('modal-result').classList.add('active');
         }
 
@@ -478,15 +531,15 @@
             document.getElementById('modal-result').classList.remove('active');
         }
 
-        function switchPage(pageId, btn) {
+        function switchPage(pageId, btn, title) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`page-${pageId}`).classList.add('active');
             btn.classList.add('active');
+            document.getElementById('header-title').innerText = title;
             tg.HapticFeedback.selectionChanged();
         }
 
-        renderCases();
         loadUser();
         setInterval(loadUser, 30000);
     </script>
