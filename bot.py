@@ -11,15 +11,18 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from dotenv import load_dotenv
-print("BOT_TOKEN set:", bool(os.getenv("BOT_TOKEN")))
+
 load_dotenv()
 
-BOT_TOKEN = ("8986372455:AAEqZjMO8rKRbSyK_RdjbGFpP1wa7OJqdYI")
-BOT_TOKEN = os.getenv("8986372455:AAEqZjMO8rKRbSyK_RdjbGFpP1wa7OJqdYI")
-WEBAPP_URL = ("https://darknet-a0b2.onrender.com")
-WEBAPP_URL = os.getenv("https://darknet-a0b2.onrender.com")
+# Берем значения ТОЛЬКО из переменных окружения Render
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+WEBAPP_URL = os.getenv("WEBAPP_URL")
 PORT = int(os.getenv("PORT", 8080))
 DB_PATH = "dropezone.db"
+
+# Проверка, чтобы бот не падал с непонятной ошибкой
+if not BOT_TOKEN:
+    raise ValueError("ОШИБКА: Переменная BOT_TOKEN не найдена! Проверьте настройки Environment на Render.")
 
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
