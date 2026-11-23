@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Гараж</title>
+    <title>DarkNet</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
@@ -22,41 +22,36 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background: var(--bg); color: var(--text); padding-bottom: 80px; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         
-        /* Шапка */
         .header { padding: 15px 15px 5px; display: flex; justify-content: space-between; align-items: flex-end; }
         .logo-area { display: flex; align-items: center; gap: 10px; }
         .logo-text { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
         .balance-pill { background: var(--card-bg); padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; border: 1px solid var(--border); }
         .notif-icon { position: relative; width: 30px; height: 30px; background: var(--card-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 1px solid var(--border); }
 
-        /* Контент */
         .page { display: none; padding: 15px; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         .page.active { display: block; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Вкладки-сегменты (Гараж) */
         .segment-control { display: flex; background: var(--card-bg); border-radius: 12px; padding: 3px; margin-bottom: 15px; border: 1px solid var(--border); }
         .segment-btn { flex: 1; padding: 10px; text-align: center; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: 9px; transition: 0.2s; border: none; background: transparent; }
         .segment-btn.active { background: #3a3a3c; color: var(--text); }
 
-        /* Карточки */
         .card { background: var(--card-bg); border-radius: 16px; padding: 15px; margin-bottom: 12px; border: 1px solid var(--border); }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .card-title { font-size: 15px; font-weight: 600; }
         .card-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 
-        /* Гараж (доход) */
         .income-block { margin-top: 10px; }
         .income-value { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin: 5px 0; }
         .progress-bar { background: #333; height: 6px; border-radius: 3px; overflow: hidden; margin: 10px 0; }
         .progress-fill { background: var(--blue); height: 100%; width: 45%; border-radius: 3px; }
+        
         .btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
         .btn:active { opacity: 0.8; }
         .btn-primary { background: var(--blue); color: white; }
         .btn-secondary { background: var(--card-light); color: var(--text); }
         .btn-danger { background: #3a1c1c; color: var(--red); }
 
-        /* Сетка мотоциклов */
         .bike-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .bike-card { background: var(--card-bg); border-radius: 14px; padding: 12px; position: relative; border: 1px solid var(--border); display: flex; flex-direction: column; }
         .rarity-badge { position: absolute; top: 10px; left: 10px; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; color: #000; }
@@ -64,31 +59,36 @@
         .bike-img { font-size: 60px; text-align: center; margin: 15px 0; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5)); }
         .bike-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .bike-desc { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
-        .bike-price { color: var(--green); font-weight: 600; font-size: 12px; margin-top: 4px; }
         .empty-slot { background: transparent; border: 1px dashed var(--border); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 12px; min-height: 150px; }
 
-        /* Кейсы (Выбор) */
-        .case-selector { background: var(--card-light); padding: 10px 15px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 14px; cursor: pointer; margin-bottom: 15px; }
+        .case-selector { background: var(--card-light); padding: 10px 15px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 14px; cursor: pointer; margin-bottom: 15px; position: relative; }
+        .case-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg); border-radius: 12px; margin-top: 5px; border: 1px solid var(--border); z-index: 10; display: none; }
+        .case-dropdown.show { display: block; }
+        .dropdown-item { padding: 12px 15px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .dropdown-item:last-child { border-bottom: none; }
+        .dropdown-item:hover { background: var(--card-light); }
+
         .big-case-img { text-align: center; font-size: 100px; margin: 30px 0; position: relative; }
         .big-case-img::after { content: '?'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 40px; color: rgba(255,255,255,0.2); }
         .case-buttons-row { display: flex; gap: 10px; margin-bottom: 10px; }
         .case-multiplier { flex: 1; padding: 12px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; text-align: center; font-weight: 600; cursor: pointer; color: var(--text-muted); }
         .case-multiplier.active { background: #555; color: white; border-color: #777; }
+        
+        .starter-case-box { background: var(--card-bg); border-radius: 16px; padding: 15px; margin-bottom: 15px; border: 1px solid var(--green); display: flex; justify-content: space-between; align-items: center; }
+        .starter-case-info { display: flex; align-items: center; gap: 15px; }
+        .starter-case-icon { font-size: 30px; }
 
-        /* Сетка деталей (Мастерская) */
         .parts-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 15px; }
         .part-box { background: var(--card-bg); border-radius: 12px; padding: 15px 5px; text-align: center; border: 1px solid var(--border); cursor: pointer; transition: 0.2s; }
         .part-box.active { border-color: var(--blue); background: rgba(10,132,255,0.1); }
         .part-box-icon { font-size: 30px; margin-bottom: 5px; }
         .part-box-name { font-size: 11px; font-weight: 600; }
         
-        /* Мастерская (список) */
         .craft-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--border); }
         .craft-item:last-child { border-bottom: none; }
         .craft-info { display: flex; align-items: center; gap: 15px; }
         .craft-icon { font-size: 24px; background: var(--card-light); padding: 10px; border-radius: 10px; }
         
-        /* Модальное окно */
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); }
         .modal-overlay.active { display: flex; }
         .modal-content { background: var(--card-bg); width: 90%; max-width: 350px; border-radius: 24px; padding: 25px; text-align: center; position: relative; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 1px solid var(--border); }
@@ -99,19 +99,16 @@
         .result-name { font-size: 22px; font-weight: 800; }
         .result-rarity { font-size: 14px; margin-top: 8px; font-weight: 600; }
 
-        /* Нижнее меню */
         .bottom-nav { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); background: rgba(28, 28, 30, 0.95); backdrop-filter: blur(10px); display: flex; padding: 6px; gap: 5px; border-radius: 30px; border: 1px solid var(--border); z-index: 100; width: 90%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .nav-btn { flex: 1; background: none; border: none; color: var(--text-muted); font-size: 12px; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 10px 0; border-radius: 20px; transition: 0.2s; }
         .nav-btn.active { color: var(--text); background: #3a3a3c; }
         .nav-icon { font-size: 18px; }
 
-        /* Страница Меню */
         .menu-link { display: flex; align-items: center; gap: 15px; background: var(--card-bg); padding: 15px; border-radius: 16px; margin-bottom: 10px; border: 1px solid var(--border); cursor: pointer; }
         .menu-link-icon { font-size: 28px; }
         .menu-link-title { font-size: 16px; font-weight: 700; }
         .menu-link-sub { font-size: 12px; color: var(--text-muted); }
         
-        /* Ежедневный бонус */
         .daily-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
         .daily-item { background: var(--card-bg); border-radius: 12px; padding: 10px 5px; text-align: center; border: 1px solid var(--border); font-size: 10px; position: relative; }
         .daily-item.claimed { opacity: 0.5; }
@@ -123,7 +120,6 @@
 </head>
 <body>
 
-    <!-- Шапка -->
     <div class="header">
         <div class="logo-area">
             <div class="notif-icon">👤<span style="position: absolute; bottom: -2px; right: -2px; background: var(--blue); color: white; font-size: 8px; width: 14px; height: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg);">7</span></div>
@@ -134,12 +130,10 @@
         </div>
     </div>
 
-    <!-- ГАРАЖ -->
     <div id="page-garage" class="page active">
         <div class="segment-control">
             <button class="segment-btn active" onclick="switchGarageTab('bikes', this)">Мотоциклы</button>
             <button class="segment-btn" onclick="switchGarageTab('warehouse', this)">Склад</button>
-            <button class="segment-btn" onclick="switchGarageTab('showcase', this)">Витрина</button>
         </div>
 
         <div class="card" id="garage-income-block">
@@ -171,14 +165,27 @@
         </div>
     </div>
 
-    <!-- КЕЙСЫ -->
     <div id="page-cases" class="page">
-        <div class="case-selector" onclick="alert('Пока доступен только кейс Поддержанные')">
-            <span>🏍️ Поддержанные</span>
+        <div class="starter-case-box" id="starter-case-box" style="display: none;">
+            <div class="starter-case-info">
+                <div class="starter-case-icon">🎁</div>
+                <div>
+                    <div style="font-weight: 700;">Стартовые кейсы</div>
+                    <div class="card-sub">Осталось: <span id="starter-count">0</span></div>
+                </div>
+            </div>
+            <button class="btn btn-primary" style="width: auto; padding: 8px 15px;" onclick="openStarterCase()">Открыть</button>
+        </div>
+
+        <div class="case-selector" onclick="toggleDropdown()">
+            <span id="selected-case-name">🏍️ Поддержанные</span>
             <span>▼</span>
+            <div class="case-dropdown" id="case-dropdown">
+                <!-- Заполняется через JS -->
+            </div>
         </div>
         
-        <div class="big-case-img">🏍️</div>
+        <div class="big-case-img" id="case-img">🏍️</div>
         
         <div class="case-buttons-row">
             <div class="case-multiplier active" onclick="selectMultiplier(1, this)">x1</div>
@@ -198,7 +205,6 @@
         </div>
     </div>
 
-    <!-- МАСТЕРСКАЯ -->
     <div id="page-craft" class="page">
         <div class="card-sub" style="margin-bottom: 15px;">ДЕТАЛЬ</div>
         <div class="parts-grid">
@@ -224,7 +230,7 @@
                         </div>
                     </div>
                 </div>
-                <div style="font-weight: 600; font-size: 13px;">14 000 ₽ <span style="color: var(--blue);">✓</span></div>
+                <div style="font-weight: 600; font-size: 13px;">14 000 ₽</div>
             </div>
         </div>
 
@@ -232,10 +238,8 @@
         <div id="craft-section" class="card"></div>
     </div>
 
-    <!-- МЕНЮ -->
     <div id="page-menu" class="page">
-        <div class="card-sub" style="margin-bottom: 10px;">ЕЩЁ</div>
-        <div class="menu-link">
+        <div class="menu-link" onclick="alert('Инвентарь отображается на вкладке Гараж -> Склад')">
             <div class="menu-link-icon">🎒</div>
             <div>
                 <div class="menu-link-title">Инвентарь</div>
@@ -244,15 +248,19 @@
             <div style="margin-left: auto; color: var(--blue); font-weight: 600;" id="menu-inventory-count">0</div>
         </div>
 
+        <div class="menu-link" style="border-color: var(--purple); background: rgba(191, 90, 242, 0.1);">
+            <div class="menu-link-icon">👥</div>
+            <div>
+                <div class="menu-link-title">Пригласи друга</div>
+                <div class="menu-link-sub">Вы получите 100 000 ₽, друг — 150 000 ₽</div>
+            </div>
+        </div>
+
         <div class="card-sub" style="margin-bottom: 10px; margin-top: 20px;">ЕЖЕДНЕВНЫЙ БОНУС</div>
         <div class="daily-grid" id="daily-grid"></div>
-        <div class="card-sub" style="margin-bottom: 10px; color: var(--text-muted); line-height: 1.4;">
-            Заходи каждый день: на 7-й день — «Спортбайк», на 14-й — «Элита». Пропустил день — ничего не сгорает.
-        </div>
         <button class="btn btn-primary" id="daily-btn" onclick="claimDaily()">Забрать бонус</button>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО -->
     <div id="modal-result" class="modal-overlay">
         <div class="modal-content">
             <button class="modal-close" onclick="closeModal()">✕</button>
@@ -266,7 +274,6 @@
         </div>
     </div>
 
-    <!-- НИЖНЕЕ МЕНЮ -->
     <div class="bottom-nav">
         <button class="nav-btn active" onclick="switchPage('garage', this, 'Гараж')">
             <span class="nav-icon">🏠</span> Гараж
@@ -290,8 +297,19 @@
         tg.setBackgroundColor('#000000');
 
         const userId = tg.initDataUnsafe?.user?.id || 1;
-        let userData = { balance: 0, inventory: [], daily_day: 1, last_daily: 0 };
+        let userData = { balance: 0, inventory: [], daily_day: 1, last_daily: 0, starter_cases: 0 };
         let currentMultiplier = 1;
+        let selectedGarage = 'used'; // По умолчанию
+
+        const GARAGES = {
+            "rusty": {"name": "Ржавый гараж", "price": 14000, "img": "🛖"},
+            "used": {"name": "Поддержанные", "price": 14000, "img": "🛵"},
+            "city": {"name": "Городской", "price": 50000, "img": "🏙️"},
+            "tuning": {"name": "Тюнинг-ателье", "price": 120000, "img": "🔧"},
+            "sport": {"name": "Спорткар", "price": 250000, "img": "🏁"},
+            "premium": {"name": "Премиум", "price": 500000, "img": "💎"},
+            "elite": {"name": "Элита", "price": 800000, "img": "👑"}
+        };
 
         async function loadUser() {
             try {
@@ -313,7 +331,6 @@
             document.getElementById('income-per-hour').innerText = `${totalIncome.toLocaleString('ru-RU')} ₽ / ч`;
             document.getElementById('bikes-count-text').innerText = `Мотоциклы ${bikes.length}/6`;
             
-            // Расчет свободных мест (6 в гараже, 20 на складе - для байков)
             const totalBikes = bikes.length + warehouseBikes.length;
             document.getElementById('free-slots').innerText = Math.max(0, 26 - totalBikes);
 
@@ -384,15 +401,24 @@
                 `;
             });
 
-            // Меню (Ежедневный бонус)
+            // Стартовые кейсы
+            const starterBox = document.getElementById('starter-case-box');
+            if (userData.starter_cases > 0) {
+                starterBox.style.display = 'flex';
+                document.getElementById('starter-count').innerText = userData.starter_cases;
+            } else {
+                starterBox.style.display = 'none';
+            }
+
+            // Ежедневный бонус
             const dailyGrid = document.getElementById('daily-grid');
             dailyGrid.innerHTML = '';
             const dailyRewards = [
-                { day: 1, icon: '💵', text: '30 000 ₽' }, { day: 2, icon: '🔧', text: 'Кейс деталей ×3' },
-                { day: 3, icon: '💵', text: '80 000 ₽' }, { day: 4, icon: '🔧', text: 'Кейс деталей ×2' },
-                { day: 5, icon: '🏍️', text: 'Кейс мотоцикла' }, { day: 6, icon: '💵', text: '200 000 ₽' },
-                { day: 7, icon: '🏎️', text: 'Кейс Спортбайк' }, { day: 8, icon: '💵', text: '400 000 ₽' },
-                { day: 9, icon: '🔧', text: 'Кейс деталей ×2' }, { day: 10, icon: '🏍️', text: 'Кейс мотоцикла' },
+                { day: 1, icon: '💵', text: '30 000 ₽' }, { day: 2, icon: '🔧', text: 'Кейс ×3' },
+                { day: 3, icon: '💵', text: '80 000 ₽' }, { day: 4, icon: '🔧', text: 'Кейс ×2' },
+                { day: 5, icon: '🏍️', text: 'Кейс мото' }, { day: 6, icon: '💵', text: '200 000 ₽' },
+                { day: 7, icon: '🏎️', text: 'Кейс Спорт' }, { day: 8, icon: '💵', text: '400 000 ₽' },
+                { day: 9, icon: '🔧', text: 'Кейс ×2' }, { day: 10, icon: '🏍️', text: 'Кейс мото' },
                 { day: 11, icon: '💵', text: '700 000 ₽' }, { day: 12, icon: '🔧', text: 'Кейс деталей' },
                 { day: 13, icon: '💵', text: '1.5 млн ₽' }, { day: 14, icon: '👑', text: 'Кейс Элита' }
             ];
@@ -410,7 +436,6 @@
                 `;
             });
 
-            // Проверка доступности бонуса (раз в 24 часа)
             const now = Math.floor(Date.now() / 1000);
             const dailyBtn = document.getElementById('daily-btn');
             if (userData.last_daily && (now - userData.last_daily < 86400)) {
@@ -424,6 +449,29 @@
             }
 
             document.getElementById('menu-inventory-count').innerText = userData.inventory.length;
+            renderDropdown();
+        }
+
+        function renderDropdown() {
+            const dropdown = document.getElementById('case-dropdown');
+            dropdown.innerHTML = '';
+            for (const [key, data] of Object.entries(GARAGES)) {
+                dropdown.innerHTML += `<div class="dropdown-item" onclick="selectGarage('${key}')">${data.img} ${data.name}</div>`;
+            }
+            // Обновляем название выбранного кейса
+            document.getElementById('selected-case-name').innerText = `${GARAGES[selectedGarage].img} ${GARAGES[selectedGarage].name}`;
+            document.getElementById('case-img').innerText = GARAGES[selectedGarage].img;
+            document.getElementById('open-case-btn').innerText = `Открыть ещё - ${(GARAGES[selectedGarage].price * currentMultiplier).toLocaleString('ru-RU')} ₽`;
+        }
+
+        function toggleDropdown() {
+            document.getElementById('case-dropdown').classList.toggle('show');
+        }
+
+        function selectGarage(key) {
+            selectedGarage = key;
+            toggleDropdown();
+            renderDropdown();
         }
 
         function switchGarageTab(tab, btn) {
@@ -433,18 +481,13 @@
             document.getElementById('garage-bikes-view').style.display = tab === 'bikes' ? 'block' : 'none';
             document.getElementById('garage-warehouse-view').style.display = tab === 'warehouse' ? 'block' : 'none';
             document.getElementById('garage-income-block').style.display = tab === 'bikes' ? 'block' : 'none';
-            
-            if (tab === 'showcase') {
-                alert("Витрина в разработке!");
-                switchGarageTab('bikes', document.querySelectorAll('#page-garage .segment-btn')[0]);
-            }
         }
 
         function selectMultiplier(mult, btn) {
             document.querySelectorAll('.case-multiplier').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentMultiplier = mult;
-            document.getElementById('open-case-btn').innerText = `Открыть ещё - ${(14000 * mult).toLocaleString('ru-RU')} ₽`;
+            document.getElementById('open-case-btn').innerText = `Открыть ещё - ${(GARAGES[selectedGarage].price * mult).toLocaleString('ru-RU')} ₽`;
         }
 
         async function openCase() {
@@ -452,13 +495,33 @@
                 const res = await fetch(`/api/user/${userId}/case`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ case_type: 'bike', quantity: currentMultiplier })
+                    body: JSON.stringify({ case_type: 'bike', garage_key: selectedGarage, quantity: currentMultiplier })
                 });
                 const data = await res.json();
                 if (res.ok) {
                     tg.HapticFeedback.notificationOccurred('success');
                     if (data.items && data.items.length > 0) {
-                        showResult(data.items[0]); // Показываем первый предмет из пачки
+                        showResult(data.items[0]); 
+                    }
+                    loadUser();
+                } else {
+                    alert(data.error);
+                }
+            } catch (e) { alert("Ошибка соединения"); }
+        }
+
+        async function openStarterCase() {
+            try {
+                const res = await fetch(`/api/user/${userId}/case`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ case_type: 'bike', garage_key: 'rusty', quantity: 1, is_starter: true })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    tg.HapticFeedback.notificationOccurred('success');
+                    if (data.items && data.items.length > 0) {
+                        showResult(data.items[0]);
                     }
                     loadUser();
                 } else {
@@ -522,8 +585,8 @@
         function showResult(item) {
             document.getElementById('result-icon').innerText = item.img || '🏍️';
             document.getElementById('result-name').innerText = item.name;
-            document.getElementById('result-rarity').innerText = `Редкость: ${item.rarity}`;
-            document.getElementById('result-rarity').className = `result-rarity rarity-${item.rarity}`;
+            document.getElementById('result-rarity').innerText = `Редкость: ${item.rarity || 'D'}`;
+            document.getElementById('result-rarity').className = `result-rarity rarity-${item.rarity || 'D'}`;
             document.getElementById('modal-result').classList.add('active');
         }
 
@@ -540,6 +603,8 @@
             tg.HapticFeedback.selectionChanged();
         }
 
+        // Инициализация при старте
+        renderDropdown();
         loadUser();
         setInterval(loadUser, 30000);
     </script>
